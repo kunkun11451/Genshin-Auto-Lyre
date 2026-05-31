@@ -29,6 +29,8 @@ interface AppState {
   // ===== MIDI 文件列表 =====
   midiFiles: MidiFileInfo[]
   currentFilePath: string | null
+  latestDownloadedMidi: string | null
+  midiShowUrl: string | null
   searchQuery: string
 
   // ===== 解析结果 =====
@@ -61,6 +63,8 @@ interface AppState {
   // ===== Actions =====
   setMidiFiles: (files: MidiFileInfo[]) => void
   selectFile: (path: string | null) => void
+  setLatestDownloadedMidi: (path: string | null) => void
+  setMidiShowUrl: (url: string | null) => void
   setSearchQuery: (query: string) => void
 
   setParsedMidi: (midi: ParsedMidi | null) => void
@@ -95,6 +99,8 @@ export const useAppStore = create<AppState>()(
       // 初始状态
       midiFiles: [],
       currentFilePath: null,
+      latestDownloadedMidi: null,
+      midiShowUrl: null,
       searchQuery: '',
 
       parsedMidi: null,
@@ -123,6 +129,10 @@ export const useAppStore = create<AppState>()(
       setMidiFiles: (files) => set({ midiFiles: files }),
 
       selectFile: (path) => set({ currentFilePath: path }),
+
+      setLatestDownloadedMidi: (path) => set({ latestDownloadedMidi: path }),
+
+      setMidiShowUrl: (url) => set({ midiShowUrl: url }),
 
       setSearchQuery: (query) => set({ searchQuery: query }),
 

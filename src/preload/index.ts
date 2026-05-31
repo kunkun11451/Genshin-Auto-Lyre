@@ -35,5 +35,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** 模拟按键按下 */
   keyDown: (key: string) => ipcRenderer.send('keyboard:keyDown', key),
   /** 模拟按键释放 */
-  keyUp: (key: string) => ipcRenderer.send('keyboard:keyUp', key)
+  keyUp: (key: string) => ipcRenderer.send('keyboard:keyUp', key),
+
+  // ===== 在线曲库 =====
+  /** 初始化 webview 的 session（CSP 剥离 + 下载拦截） */
+  setupMidiSession: (partitionName: string) => ipcRenderer.send('midi:setupSession', partitionName),
+  /** 监听后台下载完成事件 */
+  onMidiDownloaded: (callback: (path: string) => void) => {
+    const handler = (_e: any, path: string) => callback(path)
+    ipcRenderer.on('midi:downloaded', handler)
+    return () => ipcRenderer.off('midi:downloaded', handler)
+  }
 })

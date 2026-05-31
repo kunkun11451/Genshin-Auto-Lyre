@@ -28,7 +28,8 @@ function createWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      webviewTag: true
     }
   })
 
@@ -130,6 +131,43 @@ function createWindow(): BrowserWindow {
     simulateKeyUp(key)
   })
 
+  // ===== 在线曲库 IPC =====
+  // 为 webview 的 session 设置 CSP 剥离和下载拦截
+  let midiSessionSetup = false
+  ipcMain.on('midi:setupSession', (_event, partitionName: string) => {
+    if (midiSessionSetup) return
+    midiSessionSetup = true
+
+    const { session } = require('electron')
+    const ses = session.fromPartition(partitionName)
+
+    // 剥离 CSP 安全策略头
+    ses.webRequest.onHeadersReceived((details: any, callback: any) => {
+      const headers = { ...details.responseHeaders }
+      for (const key of Object.keys(headers)) {
+        if (key.toLowerCase() === 'content-security-policy') {
+          delete headers[key]
+        }
+      }
+      callback({ responseHeaders: headers })
+    })
+
+    // 下载拦截：静默保存到 midi/cache
+    ses.on('will-download', (_e: any, item: any) => {
+      const cacheDir = join(midiDirPath, 'cache')
+      const savePath = join(cacheDir, item.getFilename())
+      item.setSavePath(savePath)
+
+      item.once('done', (_ev: any, state: string) => {
+        if (state === 'completed') {
+          if (!mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('midi:downloaded', savePath)
+          }
+        }
+      })
+    })
+  })
+
   return mainWindow
 }
 
@@ -138,6 +176,7 @@ app.whenReady().then(async () => {
   // 确保目录存在
   try {
     await mkdir(midiDirPath, { recursive: true })
+    await mkdir(join(midiDirPath, 'cache'), { recursive: true })
   } catch (err) {
     console.error('无法创建 midi 目录:', err)
   }
@@ -149,7 +188,7 @@ app.whenReady().then(async () => {
 
   // 监听目录变化，使用防抖以避免频繁触发
   let watchTimeout: NodeJS.Timeout | null = null
-  watch(midiDirPath, () => {
+  watch(midiDirPath, { recursive: true }, () => {
     if (watchTimeout) clearTimeout(watchTimeout)
     watchTimeout = setTimeout(() => {
       if (!mainWindow.isDestroyed()) {
@@ -161,6 +200,16 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
+    }
+  })
+
+  // 拦截所有 webview 的新窗口请求 (target="_blank")，强制在当前 webview 内跳转
+  app.on('web-contents-created', (_event, contents) => {
+    if (contents.getType() === 'webview') {
+      contents.setWindowOpenHandler(({ url }) => {
+        contents.loadURL(url)
+        return { action: 'deny' }
+      })
     }
   })
 })

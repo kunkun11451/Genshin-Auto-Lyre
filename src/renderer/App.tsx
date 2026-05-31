@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { TitleBar, PianoKeyboard, TrackCanvas, FileList, PlaybackControls, SettingsPanel } from './components'
+import { TitleBar, PianoKeyboard, TrackCanvas, FileList, PlaybackControls, SettingsPanel, MidiShowBrowser } from './components'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from './store/useAppStore'
 import { parseMidiBuffer } from './core/midi-parser'
@@ -12,6 +12,8 @@ function App(): React.JSX.Element {
   const {
     midiFiles,
     currentFilePath,
+    latestDownloadedMidi,
+    midiShowUrl,
     searchQuery,
     parsedMidi,
     mappedNotes,
@@ -28,6 +30,8 @@ function App(): React.JSX.Element {
 
     setMidiFiles,
     selectFile,
+    setLatestDownloadedMidi,
+    setMidiShowUrl,
     setSearchQuery,
     setParsedMidi,
     setMappedNotes,
@@ -42,10 +46,13 @@ function App(): React.JSX.Element {
     setTranspose,
     setStartDelaySec,
     setInstrumentMode,
+    setMiniMode,
     bgOpacity
   } = useAppStore(useShallow((state) => ({
     midiFiles: state.midiFiles,
     currentFilePath: state.currentFilePath,
+    latestDownloadedMidi: state.latestDownloadedMidi,
+    midiShowUrl: state.midiShowUrl,
     searchQuery: state.searchQuery,
     parsedMidi: state.parsedMidi,
     mappedNotes: state.mappedNotes,
@@ -63,6 +70,8 @@ function App(): React.JSX.Element {
 
     setMidiFiles: state.setMidiFiles,
     selectFile: state.selectFile,
+    setLatestDownloadedMidi: state.setLatestDownloadedMidi,
+    setMidiShowUrl: state.setMidiShowUrl,
     setSearchQuery: state.setSearchQuery,
     setParsedMidi: state.setParsedMidi,
     setMappedNotes: state.setMappedNotes,
@@ -76,7 +85,8 @@ function App(): React.JSX.Element {
     setBlackKeyConfig: state.setBlackKeyConfig,
     setTranspose: state.setTranspose,
     setStartDelaySec: state.setStartDelaySec,
-    setInstrumentMode: state.setInstrumentMode
+    setInstrumentMode: state.setInstrumentMode,
+    setMiniMode: state.setMiniMode
   })))
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -126,6 +136,23 @@ function App(): React.JSX.Element {
       engineRef.current?.dispose()
     }
   }, [])
+
+  // === 监听在线下载 ===
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onMidiDownloaded(async (path) => {
+      // 强制刷新文件列表
+      const files = await window.electronAPI.listMidiFiles()
+      setMidiFiles(
+        files.map(f => ({ path: f, name: f.split('\\').pop() || f }))
+      )
+      
+      setLatestDownloadedMidi(path)
+      selectFile(path)
+      setMidiShowUrl(null) // 下载完成后自动关闭内嵌浏览器
+      setTimeout(() => window.focus(), 50) // 恢复窗口焦点
+    })
+    return () => unsubscribe()
+  }, [setLatestDownloadedMidi, selectFile, setMidiFiles, setMidiShowUrl])
 
   // === 音频预览设置同步 ===
   useEffect(() => {
@@ -306,6 +333,13 @@ function App(): React.JSX.Element {
                 onRename={handleRename}
                 onDelete={handleDelete}
                 onSearch={setSearchQuery}
+                onCloudSearch={(q) => {
+                  setMiniMode(false)
+                  const url = q
+                    ? `https://www.midishow.com/search/result?q=${encodeURIComponent(q)}`
+                    : 'https://www.midishow.com/'
+                  setMidiShowUrl(url)
+                }}
                 isMiniMode={true}
               />
             </div>
@@ -335,24 +369,42 @@ function App(): React.JSX.Element {
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
             <PianoKeyboard />
             
-            <TrackCanvas 
-              originalNotes={parsedMidi?.allNotes || []}
-              mappedNotes={mappedNotes}
-              totalDurationMs={parsedMidi?.totalDurationMs || 0}
-              isPlaying={playbackState === 'playing'}
-              onSeek={handleSeek}
-            />
+            {midiShowUrl ? (
+              <MidiShowBrowser 
+                url={midiShowUrl} 
+                onClose={() => {
+                  setMidiShowUrl(null)
+                  setTimeout(() => window.focus(), 50) // 恢复窗口焦点，防止输入框失效
+                }} 
+              />
+            ) : (
+              <TrackCanvas 
+                originalNotes={parsedMidi?.allNotes || []}
+                mappedNotes={mappedNotes}
+                totalDurationMs={parsedMidi?.totalDurationMs || 0}
+                isPlaying={playbackState === 'playing'}
+                onSeek={handleSeek}
+              />
+            )}
             
-            <div style={{ width: '280px', flexShrink: 0, borderLeft: 'var(--glass-border)' }}>
+            <div className="layout-sidebar" style={{ width: '280px', flexShrink: 0, borderLeft: 'var(--glass-border)' }}>
               <FileList 
                 files={midiFiles}
                 currentFilePath={currentFilePath}
+                latestDownloadedMidi={latestDownloadedMidi}
                 searchQuery={searchQuery}
                 onSelect={selectFile}
                 onOpenDir={() => window.electronAPI.openMidiDir()}
                 onRename={handleRename}
                 onDelete={handleDelete}
                 onSearch={setSearchQuery}
+                onCloudSearch={(q) => {
+                  setMiniMode(false)
+                  const url = q
+                    ? `https://www.midishow.com/search/result?q=${encodeURIComponent(q)}`
+                    : 'https://www.midishow.com/'
+                  setMidiShowUrl(url)
+                }}
               />
             </div>
 

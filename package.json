@@ -31,7 +31,8 @@
     "appId": "com.tanqin.genshinautolyre",
     "productName": "Genshin Auto Lyre",
     "win": {
-      "target": ["portable"]
+      "target": ["portable"],
+      "requestedExecutionLevel": "requireAdministrator"
     },
     "portable": {
       "artifactName": "${productName}-${version}-Portable.exe"

@@ -7,24 +7,28 @@ import type { MidiFileInfo } from '../store/useAppStore'
 interface FileListProps {
   files: MidiFileInfo[]
   currentFilePath: string | null
+  latestDownloadedMidi?: string | null
   searchQuery: string
   onSelect: (path: string) => void
   onOpenDir: () => void
   onRename: (oldPath: string, newName: string) => void
   onDelete: (filePath: string) => void
   onSearch: (query: string) => void
+  onCloudSearch: (query: string) => void
   isMiniMode?: boolean
 }
 
 export function FileList({
   files,
   currentFilePath,
+  latestDownloadedMidi = null,
   searchQuery,
   onSelect,
   onOpenDir,
   onRename,
   onDelete,
   onSearch,
+  onCloudSearch,
   isMiniMode = false
 }: FileListProps): React.JSX.Element {
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, file: MidiFileInfo } | null>(null)
@@ -35,6 +39,12 @@ export function FileList({
   const filteredFiles = files.filter(f => 
     f.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const displayFiles = [...filteredFiles].sort((a, b) => {
+    if (a.path === latestDownloadedMidi) return -1
+    if (b.path === latestDownloadedMidi) return 1
+    return 0
+  })
 
   // 关闭右键菜单
   useEffect(() => {
@@ -102,21 +112,36 @@ export function FileList({
         </div>
       </div>
 
-      <div className="search-box">
-        <div style={{ position: 'relative' }}>
+      <div className="search-box" style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
           <Search size={14} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-dim)' }} />
           <input 
             type="text" 
-            placeholder="搜索 MIDI..." 
+            placeholder="搜索..." 
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
             style={{ paddingLeft: '32px' }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && searchQuery.trim() && !isMiniMode) {
+                onCloudSearch(searchQuery.trim())
+              }
+            }}
           />
         </div>
+        {!isMiniMode && (
+          <button 
+            className="btn-add" 
+            onClick={() => onCloudSearch(searchQuery.trim())}
+            title="去 MidiShow 在线搜索并下载"
+            style={{ padding: '0 12px', whiteSpace: 'nowrap' }}
+          >
+            在线搜索
+          </button>
+        )}
       </div>
 
       <div className="file-items" style={{ overflowY: contextMenu ? 'hidden' : 'auto' }}>
-        {filteredFiles.map((file) => {
+        {displayFiles.map((file) => {
           const isActive = file.path === currentFilePath
           const isEditing = file.path === editingFile
           
@@ -129,6 +154,17 @@ export function FileList({
             >
               <FileMusic size={14} style={{ marginRight: '8px', color: isActive ? 'var(--text-primary)' : 'var(--text-dim)' }} />
               
+              {file.path === latestDownloadedMidi && (
+                <span style={{ 
+                  background: 'var(--primary)', 
+                  color: '#fff', 
+                  fontSize: '10px', 
+                  padding: '2px 4px', 
+                  borderRadius: '4px', 
+                  marginRight: '6px'
+                }}>新</span>
+              )}
+
               {isEditing ? (
                 <input
                   ref={inputRef}
