@@ -27,7 +27,7 @@ jobs:
       - name: Update Version in package.json
         run: |
           $ver = "${{ github.event.inputs.version }}".TrimStart('v')
-          npm --no-git-tag-version version $ver
+          npm --no-git-tag-version --allow-same-version version $ver
         shell: powershell
 
       - name: Install Dependencies
