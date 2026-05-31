@@ -1,0 +1,77 @@
+/* ============================================================
+ * PianoKeyboard 组件样式 - 左侧钢琴键盘面板
+ * ============================================================ */
+
+.piano-keyboard {
+  width: 72px;
+  min-width: 72px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  overflow-y: hidden;
+  flex-shrink: 0;
+}
+
+/* ---- 单个琴键 ---- */
+.piano-key {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-height: 0;
+  padding: 0 6px;
+  background-color: var(--key-normal);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: background-color 0.1s ease, box-shadow 0.1s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.piano-key:hover {
+  background-color: var(--key-hover);
+}
+
+/* 活跃（按下）状态 */
+.piano-key--active {
+  background-color: var(--key-active) !important;
+  box-shadow: 0 0 12px rgba(233, 69, 96, 0.6), inset 0 0 8px rgba(233, 69, 96, 0.3);
+}
+
+/* 八度分隔线（每组 7 个键之间的视觉分界） */
+.piano-key--octave-start {
+  border-top: 2px solid var(--accent-secondary);
+}
+
+/* ---- 音名标签 ---- */
+.piano-key__note {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 18px;
+  text-align: left;
+}
+
+.piano-key--active .piano-key__note {
+  color: #ffffff;
+}
+
+/* ---- 键盘按键标签 ---- */
+.piano-key__keymap {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.piano-key--active .piano-key__keymap {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.15);
+}

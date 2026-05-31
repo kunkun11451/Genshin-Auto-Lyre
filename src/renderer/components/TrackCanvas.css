@@ -1,0 +1,14 @@
+.track-canvas-container {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  background-color: var(--bg-canvas);
+  overflow: hidden;
+}
+
+.track-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
