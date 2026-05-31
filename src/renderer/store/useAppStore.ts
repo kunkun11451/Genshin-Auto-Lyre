@@ -28,7 +28,7 @@ export interface MidiFileInfo {
 interface AppState {
   // ===== MIDI 文件列表 =====
   midiFiles: MidiFileInfo[]
-  currentFileIndex: number
+  currentFilePath: string | null
   searchQuery: string
 
   // ===== 解析结果 =====
@@ -43,10 +43,15 @@ interface AppState {
   // ===== 活跃按键（用于钢琴键盘高亮） =====
   activeKeys: Set<string>
 
+  // ===== 界面模式 =====
+  isMiniMode: boolean
+  setMiniMode: (isMini: boolean) => void
+
   // ===== 音频预览 =====
   audioPreviewEnabled: boolean
 
   // ===== 设置 =====
+  instrumentMode: 'standard' | 'chord'
   blackKeyConfig: BlackKeyConfig
   transpose: number
   startDelaySec: number
@@ -54,9 +59,8 @@ interface AppState {
   minDuration: number
 
   // ===== Actions =====
-  addFiles: (files: MidiFileInfo[]) => void
-  removeFile: (index: number) => void
-  selectFile: (index: number) => void
+  setMidiFiles: (files: MidiFileInfo[]) => void
+  selectFile: (path: string | null) => void
   setSearchQuery: (query: string) => void
 
   setParsedMidi: (midi: ParsedMidi | null) => void
@@ -72,6 +76,7 @@ interface AppState {
 
   setAudioPreviewEnabled: (enabled: boolean) => void
 
+  setInstrumentMode: (mode: 'standard' | 'chord') => void
   setBlackKeyConfig: (config: BlackKeyConfig) => void
   setTranspose: (transpose: number) => void
   setStartDelaySec: (sec: number) => void
@@ -89,7 +94,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       // 初始状态
       midiFiles: [],
-      currentFileIndex: -1,
+      currentFilePath: null,
       searchQuery: '',
 
       parsedMidi: null,
@@ -101,8 +106,11 @@ export const useAppStore = create<AppState>()(
 
       activeKeys: new Set(),
 
+      isMiniMode: false,
+
       audioPreviewEnabled: false,
 
+      instrumentMode: 'standard',
       blackKeyConfig: { ...DEFAULT_BLACK_KEY_CONFIG },
       transpose: 0,
       startDelaySec: 3,
@@ -112,25 +120,9 @@ export const useAppStore = create<AppState>()(
 
       // ===== Actions =====
 
-      addFiles: (files) => set((state) => {
-        const existingPaths = new Set(state.midiFiles.map((f) => f.path))
-        const newFiles = files.filter((f) => !existingPaths.has(f.path))
-        return { midiFiles: [...state.midiFiles, ...newFiles] }
-      }),
+      setMidiFiles: (files) => set({ midiFiles: files }),
 
-      removeFile: (index) => set((state) => {
-        const newFiles = [...state.midiFiles]
-        newFiles.splice(index, 1)
-        let newIndex = state.currentFileIndex
-        if (index === newIndex) {
-          newIndex = -1
-        } else if (index < newIndex) {
-          newIndex--
-        }
-        return { midiFiles: newFiles, currentFileIndex: newIndex }
-      }),
-
-      selectFile: (index) => set({ currentFileIndex: index }),
+      selectFile: (path) => set({ currentFilePath: path }),
 
       setSearchQuery: (query) => set({ searchQuery: query }),
 
@@ -158,7 +150,11 @@ export const useAppStore = create<AppState>()(
 
       clearActiveKeys: () => set({ activeKeys: new Set() }),
 
+      setMiniMode: (isMini) => set({ isMiniMode: isMini }),
+
       setAudioPreviewEnabled: (enabled) => set({ audioPreviewEnabled: enabled }),
+
+      setInstrumentMode: (mode) => set({ instrumentMode: mode }),
 
       setBlackKeyConfig: (config) => set({ blackKeyConfig: config }),
 
@@ -169,11 +165,11 @@ export const useAppStore = create<AppState>()(
       setBgOpacity: (opacity) => set({ bgOpacity: Math.max(0, Math.min(1, opacity)) })
     }),
     {
-      name: 'autopiano-storage',
-      // 只持久化需要保存的配置和文件列表，不保存解析后的数据和播放状态
+      name: 'genshin-auto-lyre-storage',
+      // 只持久化需要保存的配置，不保存文件列表（改由专属文件夹实时同步读取）
       partialize: (state) => ({
-        midiFiles: state.midiFiles,
         audioPreviewEnabled: state.audioPreviewEnabled,
+        instrumentMode: state.instrumentMode,
         blackKeyConfig: state.blackKeyConfig,
         transpose: state.transpose,
         startDelaySec: state.startDelaySec,

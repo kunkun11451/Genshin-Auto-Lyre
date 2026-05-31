@@ -10,7 +10,7 @@ const CSHARP_CODE = `
 using System;
 using System.Runtime.InteropServices;
 
-namespace AutoPiano
+namespace GenshinAutoLyre
 {
     class KeyboardHelper
     {
@@ -102,8 +102,8 @@ namespace AutoPiano
 
 export async function initKeyboardSimulator(): Promise<void> {
   const tempDir = tmpdir()
-  const csFile = join(tempDir, 'AutoPianoKeyboardHelper_v4.cs')
-  const exePath = join(tempDir, 'AutoPianoKeyboardHelper_v4.exe')
+  const csFile = join(tempDir, 'GenshinAutoLyreKeyboardHelper_v4.cs')
+  const exePath = join(tempDir, 'GenshinAutoLyreKeyboardHelper_v4.exe')
 
   if (isCompiling) return
 

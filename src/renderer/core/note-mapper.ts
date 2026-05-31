@@ -42,6 +42,8 @@ export interface MapperOptions {
   minInterval: number
   /** 最小音符持续时间（毫秒） */
   minDuration: number
+  /** 乐器模式 */
+  instrumentMode?: 'standard' | 'chord'
 }
 
 /** 映射后的音符（演奏指令） */
@@ -60,6 +62,8 @@ export interface MappedNote {
   velocity: number
   /** 是否由 dual 策略生成（双键之一） */
   isDualGenerated: boolean
+  /** 和弦名称（如果该音符是合并后的和弦） */
+  chordName?: string
 }
 
 // ============================================================
@@ -78,7 +82,8 @@ export const DEFAULT_MAPPER_OPTIONS: MapperOptions = {
   blackKeyConfig: DEFAULT_BLACK_KEY_CONFIG,
   transpose: 0,
   minInterval: 30,
-  minDuration: 50
+  minDuration: 50,
+  instrumentMode: 'standard'
 }
 
 // ============================================================
@@ -91,16 +96,15 @@ const GAME_NOTES_SET = new Set(GAME_NOTES)
 // ============================================================
 
 /**
- * 将音符折叠到可演奏范围 (C3=48 ~ B5=83)
+ * 将音符折叠到可演奏范围 (C3=48 ~ 默认 B5=83)
  * 低于范围则升八度，高于范围则降八度
  */
-function foldToRange(midiNote: number): number {
+function foldToRange(midiNote: number, maxRange: number = 83): number {
   const MIN = 48 // C3
-  const MAX = 83 // B5
   while (midiNote < MIN) midiNote += 12
-  while (midiNote > MAX) midiNote -= 12
+  while (midiNote > maxRange) midiNote -= 12
   // 防止极端情况导致无限循环后仍越界
-  if (midiNote < MIN || midiNote > MAX) return -1
+  if (midiNote < MIN || midiNote > maxRange) return -1
   return midiNote
 }
 
@@ -153,11 +157,97 @@ function handleBlackKey(midiNote: number, strategy: BlackKeyStrategy): number[] 
   }
 }
 
+// ============================================================
+// 和弦合成模块 (Chord Synthesis)
+// ============================================================
+
+interface ChordDef {
+  name: string
+  pitchClasses: number[]
+  targetMidi: number
+  key: string
+}
+
+const CHORDS: ChordDef[] = [
+  { name: 'C',  pitchClasses: [0, 4, 7], targetMidi: 72, key: 'Q' },
+  { name: 'Dm', pitchClasses: [2, 5, 9], targetMidi: 74, key: 'W' },
+  { name: 'Em', pitchClasses: [4, 7, 11], targetMidi: 76, key: 'E' },
+  { name: 'F',  pitchClasses: [5, 9, 0], targetMidi: 77, key: 'R' },
+  { name: 'G',  pitchClasses: [7, 11, 2], targetMidi: 79, key: 'T' },
+  { name: 'Am', pitchClasses: [9, 0, 4], targetMidi: 81, key: 'Y' },
+  { name: 'G7', pitchClasses: [7, 11, 2, 5], targetMidi: 83, key: 'U' }
+]
+
+function synthesizeChords(notes: ParsedNote[]): { chords: MappedNote[], remainingNotes: ParsedNote[] } {
+  const chords: MappedNote[] = []
+  const remainingNotes: ParsedNote[] = []
+  
+  // 按时间排序
+  const sorted = [...notes].sort((a, b) => a.startMs - b.startMs)
+  
+  let i = 0
+  while (i < sorted.length) {
+    const windowStart = sorted[i].startMs
+    const group: ParsedNote[] = []
+    
+    // 20ms 时间窗口
+    let j = i
+    while (j < sorted.length && sorted[j].startMs - windowStart <= 20) {
+      group.push(sorted[j])
+      j++
+    }
+    
+    if (group.length >= 3) {
+      const pitchClasses = new Set(group.map(n => n.note % 12))
+      
+      let matchedChord: ChordDef | null = null
+      // 优先匹配四和弦 (G7)，再匹配三和弦
+      const sortedChords = [...CHORDS].sort((a, b) => b.pitchClasses.length - a.pitchClasses.length)
+      
+      for (const chord of sortedChords) {
+        const hasAll = chord.pitchClasses.every(pc => pitchClasses.has(pc))
+        if (hasAll) {
+          matchedChord = chord
+          break
+        }
+      }
+      
+      if (matchedChord) {
+        // 生成和弦对应的 MappedNote
+        chords.push({
+          startMs: group[0].startMs,
+          durationMs: Math.max(...group.map(n => n.durationMs)),
+          midiNote: matchedChord.targetMidi,
+          key: matchedChord.key,
+          originalNote: group[0].note, 
+          velocity: Math.max(...group.map(n => n.velocity)),
+          isDualGenerated: false,
+          chordName: matchedChord.name
+        })
+        
+        // 从单音中剔除已经构成和弦的音
+        const chordPcSet = new Set(matchedChord.pitchClasses)
+        const leftovers = group.filter(n => !chordPcSet.has(n.note % 12))
+        remainingNotes.push(...leftovers)
+      } else {
+        remainingNotes.push(...group)
+      }
+    } else {
+      remainingNotes.push(...group)
+    }
+    
+    i = j
+  }
+  
+  return { chords, remainingNotes }
+}
+
 /**
  * 将解析后的 MIDI 音符列表映射为可演奏的指令序列
  *
  * 处理流程：
  * 1. 移调
+ * 1.5. 如果是和弦模式，尝试合成和弦
  * 2. 音域折叠
  * 3. 分八度黑键处理
  * 4. 去重（同一时刻同一键只保留一个）
@@ -169,12 +259,20 @@ export function mapNotes(
 ): MappedNote[] {
   const result: MappedNote[] = []
 
-  for (const note of notes) {
-    // 第一步：移调
-    let transposedNote = note.note + options.transpose
+  let notesToMap = notes.map(n => ({ ...n, note: n.note + options.transpose }))
+  let chordNotes: MappedNote[] = []
 
-    // 第二步：音域折叠
-    const foldedNote = foldToRange(transposedNote)
+  // 第 1.5 步：如果是和弦模式，尝试合成和弦
+  if (options.instrumentMode === 'chord') {
+    const synthResult = synthesizeChords(notesToMap)
+    chordNotes = synthResult.chords
+    notesToMap = synthResult.remainingNotes
+  }
+
+  for (const note of notesToMap) {
+    // 第二步：音域折叠 (和弦模式下限制最高到 B4(71))
+    const maxRange = options.instrumentMode === 'chord' ? 71 : 83
+    const foldedNote = foldToRange(note.note, maxRange)
     if (foldedNote === -1) continue // 折叠失败，跳过
 
     // 第三步：分八度黑键处理
@@ -205,6 +303,9 @@ export function mapNotes(
       })
     }
   }
+
+  // 合并自动合成的和弦音符
+  result.push(...chordNotes)
 
   // 按开始时间排序
   result.sort((a, b) => a.startMs - b.startMs || a.midiNote - b.midiNote)

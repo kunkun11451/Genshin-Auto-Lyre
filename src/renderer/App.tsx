@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { TitleBar, PianoKeyboard, TrackCanvas, FileList, PlaybackControls, SettingsPanel } from './components'
+import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from './store/useAppStore'
 import { parseMidiBuffer } from './core/midi-parser'
 import { mapNotes } from './core/note-mapper'
@@ -10,7 +11,7 @@ function App(): React.JSX.Element {
   // === 状态 ===
   const {
     midiFiles,
-    currentFileIndex,
+    currentFilePath,
     searchQuery,
     parsedMidi,
     mappedNotes,
@@ -22,8 +23,10 @@ function App(): React.JSX.Element {
     startDelaySec,
     minInterval,
     minDuration,
+    instrumentMode,
+    isMiniMode,
 
-    addFiles,
+    setMidiFiles,
     selectFile,
     setSearchQuery,
     setParsedMidi,
@@ -38,9 +41,43 @@ function App(): React.JSX.Element {
     setBlackKeyConfig,
     setTranspose,
     setStartDelaySec,
-    
+    setInstrumentMode,
     bgOpacity
-  } = useAppStore()
+  } = useAppStore(useShallow((state) => ({
+    midiFiles: state.midiFiles,
+    currentFilePath: state.currentFilePath,
+    searchQuery: state.searchQuery,
+    parsedMidi: state.parsedMidi,
+    mappedNotes: state.mappedNotes,
+    playbackState: state.playbackState,
+    playbackSpeed: state.playbackSpeed,
+    audioPreviewEnabled: state.audioPreviewEnabled,
+    blackKeyConfig: state.blackKeyConfig,
+    transpose: state.transpose,
+    startDelaySec: state.startDelaySec,
+    minInterval: state.minInterval,
+    minDuration: state.minDuration,
+    instrumentMode: state.instrumentMode,
+    isMiniMode: state.isMiniMode,
+    bgOpacity: state.bgOpacity,
+
+    setMidiFiles: state.setMidiFiles,
+    selectFile: state.selectFile,
+    setSearchQuery: state.setSearchQuery,
+    setParsedMidi: state.setParsedMidi,
+    setMappedNotes: state.setMappedNotes,
+    setPlaybackState: state.setPlaybackState,
+    setCurrentTime: state.setCurrentTime,
+    setPlaybackSpeed: state.setPlaybackSpeed,
+    addActiveKey: state.addActiveKey,
+    removeActiveKey: state.removeActiveKey,
+    clearActiveKeys: state.clearActiveKeys,
+    setAudioPreviewEnabled: state.setAudioPreviewEnabled,
+    setBlackKeyConfig: state.setBlackKeyConfig,
+    setTranspose: state.setTranspose,
+    setStartDelaySec: state.setStartDelaySec,
+    setInstrumentMode: state.setInstrumentMode
+  })))
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [delayCountdown, setDelayCountdown] = useState<number | null>(null)
@@ -59,14 +96,18 @@ function App(): React.JSX.Element {
         audioPreview.noteOn(note.midiNote, note.velocity)
         
         // 调用键盘模拟 IPC
-        window.electronAPI.keyDown(note.key)
+        if (!useAppStore.getState().audioPreviewEnabled) {
+          window.electronAPI.keyDown(note.key)
+        }
       },
       onNoteOff: (note) => {
         removeActiveKey(note.key)
         audioPreview.noteOff(note.midiNote)
         
         // 调用键盘模拟 IPC
-        window.electronAPI.keyUp(note.key)
+        if (!useAppStore.getState().audioPreviewEnabled) {
+          window.electronAPI.keyUp(note.key)
+        }
       },
       onStateChange: (state) => {
         setPlaybackState(state)
@@ -96,17 +137,53 @@ function App(): React.JSX.Element {
     engineRef.current?.setSpeed(playbackSpeed)
   }, [playbackSpeed])
 
+  // === 全局背景透明度同步 ===
+  useEffect(() => {
+    document.documentElement.style.setProperty('--bg-opacity', bgOpacity.toString())
+  }, [bgOpacity])
+
+  // === 初始化加载及目录监听 ===
+  const fetchMidiFiles = async () => {
+    try {
+      const files = await window.electronAPI.listMidiFiles()
+      const newMidiFiles = files.map(p => ({
+        path: p,
+        name: p.split(/[/\\]/).pop() || '未命名'
+      }))
+      setMidiFiles(newMidiFiles)
+    } catch (err) {
+      console.error('获取 MIDI 文件列表失败:', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchMidiFiles()
+    
+    // 监听目录变化
+    const unsub = window.electronAPI.onDirChanged(() => {
+      fetchMidiFiles()
+    })
+    return unsub
+  }, [])
+
   // === 文件切换时解析并映射 ===
   useEffect(() => {
     const loadFile = async () => {
-      if (currentFileIndex < 0 || currentFileIndex >= midiFiles.length) {
+      if (!currentFilePath) {
         setParsedMidi(null)
         setMappedNotes([])
         engineRef.current?.stop()
         return
       }
 
-      const file = midiFiles[currentFileIndex]
+      const file = midiFiles.find(f => f.path === currentFilePath)
+      if (!file) {
+        setParsedMidi(null)
+        setMappedNotes([])
+        engineRef.current?.stop()
+        return
+      }
+
       try {
         const buffer = await window.electronAPI.readMidiFile(file.path)
         const parsed = parseMidiBuffer(buffer, file.name)
@@ -117,7 +194,7 @@ function App(): React.JSX.Element {
       }
     }
     loadFile()
-  }, [currentFileIndex, midiFiles])
+  }, [currentFilePath, midiFiles])
 
   // === 映射参数改变或新文件解析后，重新映射 ===
   useEffect(() => {
@@ -130,7 +207,8 @@ function App(): React.JSX.Element {
       blackKeyConfig,
       transpose,
       minInterval,
-      minDuration
+      minDuration,
+      instrumentMode
     })
     
     setMappedNotes(newMappedNotes)
@@ -138,7 +216,7 @@ function App(): React.JSX.Element {
     // 加载到引擎
     engineRef.current?.load(newMappedNotes, parsedMidi.totalDurationMs)
 
-  }, [parsedMidi, blackKeyConfig, transpose, minInterval, minDuration])
+  }, [parsedMidi, blackKeyConfig, transpose, minInterval, minDuration, instrumentMode])
 
   // === 控制处理函数 ===
   const handlePlayPause = () => {
@@ -178,24 +256,29 @@ function App(): React.JSX.Element {
     engineRef.current?.seek(timeMs)
   }
 
-  const handleAddFiles = async () => {
-    const paths = await window.electronAPI.openFileDialog()
-    if (paths && paths.length > 0) {
-      addFiles(paths.map(p => {
-        // 简单提取文件名
-        const name = p.split(/[/\\]/).pop() || '未命名'
-        return { path: p, name }
-      }))
+  const handleRename = async (oldPath: string, newName: string) => {
+    try {
+      const newPath = await window.electronAPI.renameMidiFile(oldPath, newName)
+      if (currentFilePath === oldPath) {
+        selectFile(newPath)
+      }
+      fetchMidiFiles()
+    } catch (err) {
+      console.error('重命名失败:', err)
+      alert('重命名失败，文件名可能存在非法字符或文件被占用。')
     }
   }
 
-  const handleAddFolder = async () => {
-    const paths = await window.electronAPI.openFolderDialog()
-    if (paths && paths.length > 0) {
-      addFiles(paths.map(p => {
-        const name = p.split(/[/\\]/).pop() || '未命名'
-        return { path: p, name }
-      }))
+  const handleDelete = async (filePath: string) => {
+    try {
+      await window.electronAPI.deleteMidiFile(filePath)
+      if (currentFilePath === filePath) {
+        selectFile(null)
+      }
+      fetchMidiFiles()
+    } catch (err) {
+      console.error('删除失败:', err)
+      alert('删除失败，文件可能被占用。')
     }
   }
 
@@ -210,57 +293,110 @@ function App(): React.JSX.Element {
 
       <TitleBar />
       
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
-        <PianoKeyboard />
-        
-        <TrackCanvas 
-          originalNotes={parsedMidi?.allNotes || []}
-          mappedNotes={mappedNotes}
-          totalDurationMs={parsedMidi?.totalDurationMs || 0}
-          isPlaying={playbackState === 'playing'}
-          onSeek={handleSeek}
-        />
-        
-        <FileList 
-          files={midiFiles}
-          currentIndex={currentFileIndex}
-          searchQuery={searchQuery}
-          onSelect={selectFile}
-          onAddFiles={handleAddFiles}
-          onAddFolder={handleAddFolder}
-          onSearch={setSearchQuery}
-        />
-
-        {/* 倒计时遮罩 */}
-        {delayCountdown !== null && (
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50,
-            fontSize: '120px', color: '#e94560', fontWeight: 'bold',
-            textShadow: '0 0 20px rgba(233,69,96,0.8)'
-          }}>
-            {delayCountdown}
+      {isMiniMode ? (
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '100%' }}>
+              <FileList 
+                files={midiFiles}
+                currentFilePath={currentFilePath}
+                searchQuery={searchQuery}
+                onSelect={selectFile}
+                onOpenDir={() => window.electronAPI.openMidiDir()}
+                onRename={handleRename}
+                onDelete={handleDelete}
+                onSearch={setSearchQuery}
+                isMiniMode={true}
+              />
+            </div>
           </div>
-        )}
-      </div>
+          <PlaybackControls 
+            isPlaying={playbackState === 'playing'}
+            totalDurationMs={parsedMidi?.totalDurationMs || 0}
+            speed={playbackSpeed}
+            onPlayPause={handlePlayPause}
+            onStop={handleStop}
+            onPrev={() => {
+              const idx = midiFiles.findIndex(f => f.path === currentFilePath)
+              if (idx > 0) selectFile(midiFiles[idx - 1].path)
+            }}
+            onNext={() => {
+              const idx = midiFiles.findIndex(f => f.path === currentFilePath)
+              if (idx >= 0 && idx < midiFiles.length - 1) selectFile(midiFiles[idx + 1].path)
+            }}
+            onSeek={handleSeek}
+            onSpeedChange={setPlaybackSpeed}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            isMiniMode={true}
+          />
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+            <PianoKeyboard />
+            
+            <TrackCanvas 
+              originalNotes={parsedMidi?.allNotes || []}
+              mappedNotes={mappedNotes}
+              totalDurationMs={parsedMidi?.totalDurationMs || 0}
+              isPlaying={playbackState === 'playing'}
+              onSeek={handleSeek}
+            />
+            
+            <div style={{ width: '280px', flexShrink: 0, borderLeft: 'var(--glass-border)' }}>
+              <FileList 
+                files={midiFiles}
+                currentFilePath={currentFilePath}
+                searchQuery={searchQuery}
+                onSelect={selectFile}
+                onOpenDir={() => window.electronAPI.openMidiDir()}
+                onRename={handleRename}
+                onDelete={handleDelete}
+                onSearch={setSearchQuery}
+              />
+            </div>
 
-      <PlaybackControls 
-        isPlaying={playbackState === 'playing'}
-        totalDurationMs={parsedMidi?.totalDurationMs || 0}
-        speed={playbackSpeed}
-        onPlayPause={handlePlayPause}
-        onStop={handleStop}
-        onPrev={() => selectFile(Math.max(0, currentFileIndex - 1))}
-        onNext={() => selectFile(Math.min(midiFiles.length - 1, currentFileIndex + 1))}
-        onSeek={handleSeek}
-        onSpeedChange={setPlaybackSpeed}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
+            {/* 倒计时遮罩 */}
+            {delayCountdown !== null && (
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50,
+                fontSize: '120px', color: '#e94560', fontWeight: 'bold',
+                textShadow: '0 0 20px rgba(233,69,96,0.8)'
+              }}>
+                {delayCountdown}
+              </div>
+            )}
+          </div>
+
+          <PlaybackControls 
+            isPlaying={playbackState === 'playing'}
+            totalDurationMs={parsedMidi?.totalDurationMs || 0}
+            speed={playbackSpeed}
+            onPlayPause={handlePlayPause}
+            onStop={handleStop}
+            onPrev={() => {
+              const idx = midiFiles.findIndex(f => f.path === currentFilePath)
+              if (idx > 0) selectFile(midiFiles[idx - 1].path)
+            }}
+            onNext={() => {
+              const idx = midiFiles.findIndex(f => f.path === currentFilePath)
+              if (idx >= 0 && idx < midiFiles.length - 1) selectFile(midiFiles[idx + 1].path)
+            }}
+            onSeek={handleSeek}
+            onSpeedChange={setPlaybackSpeed}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            isMiniMode={false}
+          />
+        </>
+      )}
 
       <SettingsPanel 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        instrumentMode={instrumentMode}
+        onInstrumentModeChange={setInstrumentMode}
         blackKeyConfig={blackKeyConfig}
         onBlackKeyConfigChange={setBlackKeyConfig}
         transpose={transpose}

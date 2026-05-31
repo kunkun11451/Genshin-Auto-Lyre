@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Settings, Piano, Sliders } from 'lucide-react'
 import type { BlackKeyConfig, BlackKeyStrategy } from '../core/note-mapper'
 import './SettingsPanel.css'
@@ -6,6 +6,8 @@ import './SettingsPanel.css'
 interface SettingsPanelProps {
   isOpen: boolean
   onClose: () => void
+  instrumentMode: 'standard' | 'chord'
+  onInstrumentModeChange: (mode: 'standard' | 'chord') => void
   blackKeyConfig: BlackKeyConfig
   onBlackKeyConfigChange: (config: BlackKeyConfig) => void
   transpose: number
@@ -21,6 +23,8 @@ interface SettingsPanelProps {
 export function SettingsPanel({
   isOpen,
   onClose,
+  instrumentMode,
+  onInstrumentModeChange,
   blackKeyConfig,
   onBlackKeyConfigChange,
   transpose,
@@ -32,15 +36,27 @@ export function SettingsPanel({
   bgOpacity,
   onBgOpacityChange
 }: SettingsPanelProps): React.JSX.Element | null {
-  
-  if (!isOpen) return null
+  const [shouldRender, setShouldRender] = useState(isOpen)
+  const [isClosing, setIsClosing] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true)
+      setIsClosing(false)
+    } else if (shouldRender) {
+      setIsClosing(true)
+      setTimeout(() => setShouldRender(false), 200)
+    }
+  }, [isOpen])
+
+  if (!shouldRender) return null
 
   const handleStrategyChange = (octave: keyof BlackKeyConfig, val: BlackKeyStrategy) => {
     onBlackKeyConfigChange({ ...blackKeyConfig, [octave]: val })
   }
 
   return (
-    <div className="settings-overlay">
+    <div className={`settings-overlay ${isClosing ? 'closing' : ''}`}>
       <div className="settings-panel">
         <div className="settings-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -53,10 +69,28 @@ export function SettingsPanel({
         </div>
 
         <div className="settings-content">
-          {/* 黑键策略 */}
+          {/* 乐器模式 */}
           <div className="settings-group">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Piano size={16} color="var(--text-dim)" />
+              <h3>乐器模式</h3>
+            </div>
+            <div className="setting-item">
+              <label>选择乐器（影响高音映射与和弦识别）</label>
+              <select 
+                value={instrumentMode} 
+                onChange={(e) => onInstrumentModeChange(e.target.value as 'standard' | 'chord')}
+              >
+                <option value="standard">普通琴 (经典 21 音)</option>
+                <option value="chord">和弦琴 (高音区智能合成和弦)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 黑键策略 */}
+          <div className="settings-group">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <Sliders size={16} color="var(--text-dim)" />
               <h3>黑键映射策略</h3>
             </div>
             <div className="setting-item">
@@ -126,12 +160,14 @@ export function SettingsPanel({
             </div>
             <div className="setting-item">
               <label>软件音频预览</label>
-              <input 
-                type="checkbox" 
-                checked={audioPreviewEnabled}
-                onChange={(e) => onAudioPreviewEnabledChange(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: 'var(--text-primary)' }}
-              />
+              <label className="toggle-switch">
+                <input 
+                  type="checkbox" 
+                  checked={audioPreviewEnabled}
+                  onChange={(e) => onAudioPreviewEnabledChange(e.target.checked)}
+                />
+                <span className="toggle-slider"></span>
+              </label>
             </div>
             <div className="setting-item">
               <label>界面背景透明度</label>

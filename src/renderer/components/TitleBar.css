@@ -1,8 +1,8 @@
 .title-bar {
   height: 38px;
-  background: rgba(20, 20, 20, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(20, 20, 20, calc(0.4 * var(--bg-opacity)));
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: var(--glass-border);
   display: flex;
   justify-content: space-between;

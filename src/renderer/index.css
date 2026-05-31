@@ -1,9 +1,11 @@
 :root {
-  /* 背景色系 - 针对深灰毛玻璃优化 */
-  --bg-primary: #121212;
-  --bg-secondary: rgba(40, 40, 40, 0.3);
-  --bg-surface: rgba(30, 30, 30, 0.5);
-  --bg-canvas: rgba(15, 15, 15, 0.6);
+  --bg-opacity: 1; /* 动态透明度系数，由 React 注入 */
+  
+  /* 背景色系 - 动态透明度 */
+  --bg-primary: rgba(18, 18, 18, var(--bg-opacity));
+  --bg-secondary: rgba(40, 40, 40, calc(0.3 * var(--bg-opacity)));
+  --bg-surface: rgba(30, 30, 30, calc(0.5 * var(--bg-opacity)));
+  --bg-canvas: rgba(15, 15, 15, calc(0.6 * var(--bg-opacity)));
   
   /* 强调色 */
   --accent-primary: #e0e0e0;
@@ -19,9 +21,11 @@
   --text-dim: #666666;
   
   /* 边框和键位 */
-  --border-color: rgba(255, 255, 255, 0.08);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --border-color: rgba(255, 255, 255, calc(0.08 * var(--bg-opacity)));
+  --glass-border: 1px solid rgba(255, 255, 255, calc(0.05 * var(--bg-opacity)));
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, calc(0.5 * var(--bg-opacity)));
+  
+  --glass-blur: blur(calc(16px * var(--bg-opacity)));
   
   --key-normal: rgba(255, 255, 255, 0.05);
   --key-active: rgba(255, 255, 255, 0.9);

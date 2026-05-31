@@ -7,10 +7,14 @@ interface ElectronAPI {
   maximize: () => void
   close: () => void
   toggleAlwaysOnTop: () => Promise<boolean>
+  setMiniMode: (isMini: boolean) => void
 
-  // 文件操作
-  openFileDialog: () => Promise<string[] | null>
-  openFolderDialog: () => Promise<string[] | null>
+  // ===== 文件操作 =====
+  listMidiFiles: () => Promise<string[]>
+  openMidiDir: () => void
+  renameMidiFile: (oldPath: string, newName: string) => Promise<string>
+  deleteMidiFile: (filePath: string) => Promise<void>
+  onDirChanged: (callback: () => void) => () => void
   readMidiFile: (filePath: string) => Promise<ArrayBuffer>
 
   // 键盘模拟

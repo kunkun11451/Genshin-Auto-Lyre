@@ -1,13 +1,19 @@
-import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron'
-import { join } from 'path'
-import { readFile, readdir, stat } from 'fs/promises'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { join, dirname } from 'path'
+import { readFile, readdir, stat, mkdir, rename } from 'fs/promises'
+import { watch } from 'fs'
 import { initKeyboardSimulator, simulateKeyDown, simulateKeyUp, destroyKeyboardSimulator } from './keyboard-simulator'
 
 // 判断是否为开发模式
 const isDev = !app.isPackaged
 
+// MIDI 根目录配置
+const midiDirPath = isDev 
+  ? join(process.cwd(), 'midi') 
+  : join(process.env.PORTABLE_EXECUTABLE_DIR || dirname(app.getPath('exe')), 'midi')
+
 // 创建主窗口
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -72,27 +78,43 @@ function createWindow(): void {
     return isAlwaysOnTop
   })
 
-  // ===== 文件操作 IPC =====
-  ipcMain.handle('dialog:openFile', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      title: '选择 MIDI 文件',
-      filters: [{ name: 'MIDI 文件', extensions: ['mid', 'midi'] }],
-      properties: ['openFile', 'multiSelections']
-    })
-    if (result.canceled) return null
-    return result.filePaths
+  let standardBounds: Electron.Rectangle | null = null
+
+  ipcMain.on('window:setMiniMode', (_event, isMini: boolean) => {
+    if (isMini) {
+      standardBounds = mainWindow.getBounds()
+      // 解除原有的最小尺寸限制并设置为小窗尺寸
+      mainWindow.setMinimumSize(360, 520)
+      mainWindow.setSize(360, 520)
+    } else {
+      // 恢复限制和尺寸
+      mainWindow.setMinimumSize(960, 640)
+      if (standardBounds) {
+        mainWindow.setBounds(standardBounds)
+      } else {
+        mainWindow.setSize(1280, 800)
+      }
+    }
   })
 
-  ipcMain.handle('dialog:openFolder', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      title: '选择文件夹',
-      properties: ['openDirectory']
-    })
-    if (result.canceled) return null
-    
-    // 递归扫描文件夹内的所有 midi 文件
-    const dir = result.filePaths[0]
-    return await scanMidiFiles(dir)
+  // ===== 文件操作 IPC =====
+  ipcMain.handle('midi:list', async () => {
+    return await scanMidiFiles(midiDirPath)
+  })
+
+  ipcMain.on('midi:openDir', () => {
+    shell.openPath(midiDirPath)
+  })
+
+  ipcMain.handle('midi:rename', async (_event, oldPath: string, newName: string) => {
+    const finalName = newName.toLowerCase().endsWith('.mid') ? newName : newName + '.mid'
+    const newPath = join(dirname(oldPath), finalName)
+    await rename(oldPath, newPath)
+    return newPath
+  })
+
+  ipcMain.handle('midi:delete', async (_event, filePath: string) => {
+    await shell.trashItem(filePath)
   })
 
   ipcMain.handle('midi:readFile', async (_event, filePath: string) => {
@@ -107,14 +129,34 @@ function createWindow(): void {
   ipcMain.on('keyboard:keyUp', (_event, key: string) => {
     simulateKeyUp(key)
   })
+
+  return mainWindow
 }
 
 // 应用准备就绪后创建窗口
 app.whenReady().then(async () => {
+  // 确保目录存在
+  try {
+    await mkdir(midiDirPath, { recursive: true })
+  } catch (err) {
+    console.error('无法创建 midi 目录:', err)
+  }
+
   // 初始化键盘模拟器
   await initKeyboardSimulator()
   
-  createWindow()
+  const mainWindow = createWindow()
+
+  // 监听目录变化，使用防抖以避免频繁触发
+  let watchTimeout: NodeJS.Timeout | null = null
+  watch(midiDirPath, () => {
+    if (watchTimeout) clearTimeout(watchTimeout)
+    watchTimeout = setTimeout(() => {
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('midi:dirChanged')
+      }
+    }, 500)
+  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

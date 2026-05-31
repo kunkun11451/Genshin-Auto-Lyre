@@ -1,5 +1,5 @@
 /**
- * constants.ts - AutoPiano 核心常量定义
+ * constants.ts - Genshin Auto Lyre 核心常量定义
  *
  * 包含游戏支持的白键音符、键盘映射、音名映射、
  * 黑键处理策略映射表及八度范围等常量。

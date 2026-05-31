@@ -11,12 +11,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   close: () => ipcRenderer.send('window:close'),
   /** 切换置顶状态 */
   toggleAlwaysOnTop: () => ipcRenderer.invoke('window:toggleAlwaysOnTop'),
+  /** 设置小窗模式 */
+  setMiniMode: (isMini: boolean) => ipcRenderer.send('window:setMiniMode', isMini),
 
-  // ===== 文件操作（占位，后续实现） =====
-  /** 打开文件选择对话框 */
-  openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
-  /** 打开文件夹选择对话框 */
-  openFolderDialog: () => ipcRenderer.invoke('dialog:openFolder'),
+  // ===== 文件操作 =====
+  /** 获取专属文件夹下所有 MIDI 文件 */
+  listMidiFiles: () => ipcRenderer.invoke('midi:list'),
+  /** 打开系统资源管理器访问 MIDI 专属文件夹 */
+  openMidiDir: () => ipcRenderer.send('midi:openDir'),
+  /** 重命名 MIDI 文件 */
+  renameMidiFile: (oldPath: string, newName: string) => ipcRenderer.invoke('midi:rename', oldPath, newName),
+  /** 删除 MIDI 文件 */
+  deleteMidiFile: (filePath: string) => ipcRenderer.invoke('midi:delete', filePath),
+  /** 监听专属文件夹文件变化 */
+  onDirChanged: (callback: () => void) => {
+    ipcRenderer.on('midi:dirChanged', callback)
+    return () => ipcRenderer.off('midi:dirChanged', callback)
+  },
   /** 读取 MIDI 文件内容 */
   readMidiFile: (filePath: string) => ipcRenderer.invoke('midi:readFile', filePath),
 

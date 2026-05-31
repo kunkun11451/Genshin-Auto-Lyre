@@ -122,11 +122,23 @@ export function TrackCanvas({
       const w = note.durationMs * pixelsPerMs
       const y = getNoteY(note.midiNote)
 
-      // 使用 CSS 变量的主题色
-      ctx.fillStyle = note.isDualGenerated ? 'rgba(180, 180, 180, 0.85)' : 'rgba(255, 255, 255, 0.85)'
+      // 使用不同颜色区分和弦与普通音符
+      if (note.chordName) {
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.85)' // 金色高亮和弦
+      } else {
+        ctx.fillStyle = note.isDualGenerated ? 'rgba(180, 180, 180, 0.85)' : 'rgba(255, 255, 255, 0.85)'
+      }
       ctx.beginPath()
       ctx.roundRect(x, y + 2, w, rowHeight - 4, 4)
       ctx.fill()
+
+      if (note.chordName && w > 20) {
+        ctx.fillStyle = '#000'
+        ctx.font = '10px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(note.chordName, x + w / 2, y + rowHeight / 2)
+      }
     }
 
     // 3. 绘制播放头

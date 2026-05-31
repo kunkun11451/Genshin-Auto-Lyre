@@ -7,31 +7,53 @@
 import * as Tone from 'tone'
 
 class AudioPreview {
-  private synth: Tone.PolySynth | null = null
+  private synth: Tone.Sampler | null = null
   private enabled: boolean = false
   private initialized: boolean = false
+  private isLoading: boolean = false
 
   /**
    * 初始化合成器（需要在用户交互后调用）
    */
   async init() {
-    if (this.initialized) return
-    await Tone.start()
-    
-    // 使用三角波和一些包络调整来模拟类似电钢琴的声音
-    this.synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'triangle' },
-      envelope: {
-        attack: 0.02,
-        decay: 1,
-        sustine: 0.4,
-        release: 1
-      }
-    }).toDestination()
-    
-    // 稍微降低音量
-    this.synth.volume.value = -10
-    this.initialized = true
+    if (this.initialized || this.isLoading) return
+    this.isLoading = true
+
+    try {
+      await Tone.start()
+      
+      // 使用真实大钢琴采样 (Salamander Grand Piano)
+      // 为了加快加载速度，我们只提供少量的采样基准音，Tone.js 会自动对其他音高进行插值移调
+      this.synth = new Tone.Sampler({
+        urls: {
+          C3: "C3.mp3",
+          "D#3": "Ds3.mp3",
+          "F#3": "Fs3.mp3",
+          A3: "A3.mp3",
+          C4: "C4.mp3",
+          "D#4": "Ds4.mp3",
+          "F#4": "Fs4.mp3",
+          A4: "A4.mp3",
+          C5: "C5.mp3",
+          "D#5": "Ds5.mp3",
+          "F#5": "Fs5.mp3",
+          A5: "A5.mp3"
+        },
+        // 使用 GitHub Pages 作为免费 CDN，实际如果网络差可以换国内 CDN
+        baseUrl: "https://tonejs.github.io/audio/salamander/",
+        release: 1,
+        onload: () => {
+          this.initialized = true
+          this.isLoading = false
+          console.log('真实钢琴采样加载完成！')
+        }
+      }).toDestination()
+      
+      this.synth.volume.value = -5 // 调整整体音量
+    } catch (e) {
+      console.error('音频初始化失败', e)
+      this.isLoading = false
+    }
   }
 
   /**

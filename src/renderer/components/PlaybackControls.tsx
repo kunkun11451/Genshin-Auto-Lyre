@@ -13,6 +13,7 @@ interface PlaybackControlsProps {
   onSeek: (timeMs: number) => void
   onSpeedChange: (speed: number) => void
   onOpenSettings: () => void
+  isMiniMode?: boolean
 }
 
 function formatTime(ms: number): string {
@@ -32,7 +33,8 @@ export function PlaybackControls({
   onNext,
   onSeek,
   onSpeedChange,
-  onOpenSettings
+  onOpenSettings,
+  isMiniMode = false
 }: PlaybackControlsProps): React.JSX.Element {
   
   const currentTimeMs = useAppStore(state => state.currentTimeMs)
@@ -46,7 +48,7 @@ export function PlaybackControls({
   }
 
   return (
-    <div className="playback-controls">
+    <div className={`playback-controls ${isMiniMode ? 'mini-mode' : ''}`}>
       <div className="progress-container">
         <span className="time-display">{formatTime(currentTimeMs)}</span>
         <div className="progress-bar-wrapper" onClick={handleProgressBarClick}>
@@ -74,19 +76,21 @@ export function PlaybackControls({
           <SkipForward size={18} />
         </button>
 
-        <div className="speed-control">
-          <span>{speed.toFixed(1)}x</span>
-          <input 
-            type="range" 
-            className="speed-slider"
-            min="0.5" max="2.0" step="0.1"
-            value={speed}
-            onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
-            title="播放速度"
-          />
-        </div>
+        {!isMiniMode && (
+          <div className="speed-control">
+            <span>{speed.toFixed(1)}x</span>
+            <input 
+              type="range" 
+              className="speed-slider"
+              min="0.5" max="2.0" step="0.1"
+              value={speed}
+              onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
+              title="播放速度"
+            />
+          </div>
+        )}
 
-        <button className="btn-icon" onClick={onOpenSettings} title="设置" style={{ marginLeft: '16px' }}>
+        <button className="btn-icon" onClick={onOpenSettings} title="设置" style={isMiniMode ? {} : { marginLeft: '16px' }}>
           <Settings2 size={18} />
         </button>
       </div>
