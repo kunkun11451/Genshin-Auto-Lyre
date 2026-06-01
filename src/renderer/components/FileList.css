@@ -273,4 +273,17 @@ html.light .file-badge-new {
   color: #0077b6; /* 统一的高级湖蓝色高亮文字 */
 }
 
+/* ================= 激活状态云曲库按钮样式 (Active Cloud Button) ================= */
+.active-cloud-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light .active-cloud-btn {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: var(--text-primary) !important;
+}
+
 

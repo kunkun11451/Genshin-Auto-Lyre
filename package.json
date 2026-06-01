@@ -33,7 +33,7 @@
     "win": {
       "target": ["portable"],
       "requestedExecutionLevel": "requireAdministrator",
-      "icon": "build/icon.png"
+      "icon": "build/icon.ico"
     },
     "portable": {
       "artifactName": "${productName}-${version}-Portable.exe"

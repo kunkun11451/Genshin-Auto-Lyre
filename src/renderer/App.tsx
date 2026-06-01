@@ -351,17 +351,22 @@ function App(): React.JSX.Element {
                 files={midiFiles}
                 currentFilePath={currentFilePath}
                 searchQuery={searchQuery}
-                onSelect={selectFile}
+                onSelect={(path) => {
+                  selectFile(path)
+                  setMidiShowUrl(null)
+                }}
                 onOpenDir={() => window.electronAPI.openMidiDir()}
                 onRename={handleRename}
                 onDelete={handleDelete}
                 onSearch={setSearchQuery}
-                onCloudSearch={(q) => {
-                  setMiniMode(false)
-                  const url = q
-                    ? `https://www.midishow.com/search/result?q=${encodeURIComponent(q)}`
-                    : 'https://www.midishow.com/'
-                  setMidiShowUrl(url)
+                isCloudOpen={!!midiShowUrl}
+                onToggleCloud={() => {
+                  if (midiShowUrl) {
+                    setMidiShowUrl(null)
+                  } else {
+                    setMiniMode(false)
+                    setMidiShowUrl('https://www.midishow.com/')
+                  }
                 }}
                 isMiniMode={true}
               />
@@ -423,17 +428,22 @@ function App(): React.JSX.Element {
                 currentFilePath={currentFilePath}
                 latestDownloadedMidi={latestDownloadedMidi}
                 searchQuery={searchQuery}
-                onSelect={selectFile}
+                onSelect={(path) => {
+                  selectFile(path)
+                  setMidiShowUrl(null)
+                }}
                 onOpenDir={() => window.electronAPI.openMidiDir()}
                 onRename={handleRename}
                 onDelete={handleDelete}
                 onSearch={setSearchQuery}
-                onCloudSearch={(q) => {
-                  setMiniMode(false)
-                  const url = q
-                    ? `https://www.midishow.com/search/result?q=${encodeURIComponent(q)}`
-                    : 'https://www.midishow.com/'
-                  setMidiShowUrl(url)
+                isCloudOpen={!!midiShowUrl}
+                onToggleCloud={() => {
+                  if (midiShowUrl) {
+                    setMidiShowUrl(null)
+                  } else {
+                    setMiniMode(false)
+                    setMidiShowUrl('https://www.midishow.com/')
+                  }
                 }}
               />
             </div>

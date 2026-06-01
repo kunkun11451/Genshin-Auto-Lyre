@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, FileMusic, FolderOpen, MoreVertical, Edit2, Trash2 } from 'lucide-react'
+import { Search, FileMusic, FolderOpen, MoreVertical, Edit2, Trash2, Cloud } from 'lucide-react'
 import './FileList.css'
 import type { MidiFileInfo } from '../store/useAppStore'
 
@@ -14,7 +14,8 @@ interface FileListProps {
   onRename: (oldPath: string, newName: string) => void
   onDelete: (filePath: string) => void
   onSearch: (query: string) => void
-  onCloudSearch: (query: string) => void
+  onToggleCloud: () => void
+  isCloudOpen?: boolean
   isMiniMode?: boolean
 }
 
@@ -28,7 +29,8 @@ export function FileList({
   onRename,
   onDelete,
   onSearch,
-  onCloudSearch,
+  onToggleCloud,
+  isCloudOpen = false,
   isMiniMode = false
 }: FileListProps): React.JSX.Element {
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, file: MidiFileInfo } | null>(null)
@@ -109,7 +111,24 @@ export function FileList({
       <div className="file-list-header">
         <h3>MIDI曲库</h3>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn-add" onClick={onOpenDir} title="在资源管理器中打开 MIDI 文件夹">
+          {!isMiniMode && (
+            <button 
+              className={`btn-add ${isCloudOpen ? 'active-cloud-btn' : ''}`}
+              onClick={onToggleCloud} 
+              title={isCloudOpen ? "关闭在线曲库" : "在线搜索 MIDI"}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <svg 
+                style={{ width: '14px', height: '14px', fill: 'currentColor' }} 
+                viewBox="0 0 1024 1024" 
+                version="1.1" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M808.192 246.528a320.16 320.16 0 0 0-592.352 0A238.592 238.592 0 0 0 32 479.936c0 132.352 107.648 240 240 240h91.488a32 32 0 1 0 0-64H272a176.192 176.192 0 0 1-176-176 175.04 175.04 0 0 1 148.48-173.888l19.04-2.976 6.24-18.24C305.248 181.408 402.592 111.936 512 111.936a256 256 0 0 1 242.208 172.896l6.272 18.24 19.04 2.976A175.04 175.04 0 0 1 928 479.936c0 97.024-78.976 176-176 176h-97.28a32 32 0 1 0 0 64h97.28c132.352 0 240-107.648 240-240a238.592 238.592 0 0 0-183.808-233.408zM649.792 789.888L544 876.48V447.936a32 32 0 0 0-64 0V876.48l-106.752-87.424a31.968 31.968 0 1 0-40.544 49.504l159.04 130.24a32 32 0 0 0 40.576 0l158.048-129.44a32 32 0 1 0-40.576-49.472z"></path>
+              </svg>
+            </button>
+          )}
+          <button className="btn-add" onClick={onOpenDir} title="在资源管理器中打开 MIDI 文件夹" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <FolderOpen size={14} />
           </button>
         </div>
@@ -120,27 +139,12 @@ export function FileList({
           <Search size={14} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-dim)' }} />
           <input 
             type="text" 
-            placeholder="搜索..." 
+            placeholder="搜索本地..." 
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
             style={{ paddingLeft: '32px' }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && searchQuery.trim() && !isMiniMode) {
-                onCloudSearch(searchQuery.trim())
-              }
-            }}
           />
         </div>
-        {!isMiniMode && (
-          <button 
-            className="btn-add" 
-            onClick={() => onCloudSearch(searchQuery.trim())}
-            title="去 MidiShow 在线搜索并下载"
-            style={{ padding: '0 12px', whiteSpace: 'nowrap' }}
-          >
-            在线搜索
-          </button>
-        )}
       </div>
 
       <div className="file-items" style={{ overflowY: contextMenu ? 'hidden' : 'auto' }}>

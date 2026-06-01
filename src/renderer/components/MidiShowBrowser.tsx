@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, Search, Clock, FileText, Music, Layers, Download, Check, RefreshCw } from 'lucide-react'
 import './MidiShowBrowser.css'
+import searchImg from '../../../resources/search.png'
 
 declare global {
   interface Window {
@@ -246,22 +247,9 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
   }
 
   return (
-    <div className="midishow-browser-local" ref={containerRef}>
+    <div className={`midishow-browser-local ${!lastSearchedQuery ? 'no-scroll' : ''}`} ref={containerRef}>
       {/* 顶部工具栏与搜索区 */}
       <div className="cloud-search-header">
-        <div className="cloud-search-title-bar">
-          <span className="cloud-search-logo">⚡ 在线曲库</span>
-          <span className="cloud-search-subtitle">
-            由 MidiShow 驱动
-            <button type="button" className="cloud-login-link-inline-btn" onClick={() => window.electronAPI.openLoginWindow()} title="点击打开登录界面">
-              使用前需登录
-            </button>
-          </span>
-          <button className="cloud-close-btn" onClick={onClose} title="关闭在线曲库">
-            <X size={16} />
-          </button>
-        </div>
-        
         <form onSubmit={handleSearchSubmit} className="cloud-search-form">
           <div className="cloud-search-input-wrapper">
             <Search size={16} className="cloud-search-icon" />
@@ -312,6 +300,29 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
               <div className="empty-icon">📁</div>
               <div className="empty-text">未在云端检索到 “{lastSearchedQuery}” 的相关结果</div>
               <div className="empty-subtext">建议缩短关键词，或尝试其他热门歌曲名字</div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && !lastSearchedQuery && (
+          <div className="cloud-search-guide-container">
+            <div className="cloud-search-guide-content">
+              <img src={searchImg} className="cloud-search-guide-img" alt="Search Guide" draggable="false" />
+              <div className="cloud-search-guide-text-group">
+                <div className="cloud-search-guide-text">在线搜索由 MidiShow 驱动</div>
+                <div className="cloud-search-guide-subtext">
+                  使用前需
+                  <button 
+                    type="button" 
+                    className="cloud-login-link-inline-btn" 
+                    onClick={() => window.electronAPI.openLoginWindow()}
+                    title="点击打开登录界面"
+                  >
+                    登录
+                  </button>
+                  才能正常使用(已登录请忽略)
+                </div>
+              </div>
             </div>
           </div>
         )}

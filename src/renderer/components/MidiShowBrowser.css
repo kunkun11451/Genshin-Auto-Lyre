@@ -12,6 +12,10 @@
   scrollbar-width: none;  /* Firefox 隐藏滚动条 */
 }
 
+.midishow-browser-local.no-scroll {
+  overflow-y: hidden !important;
+}
+
 /* Chrome, Safari, Opera 隐藏滚动条 */
 .midishow-browser-local::-webkit-scrollbar {
   display: none;
@@ -25,9 +29,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 21px 20px 22px 20px; 
+  padding: 9px; 
   box-sizing: border-box;
-  height: 116px; 
   background: rgba(18, 18, 18, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -455,10 +458,10 @@
 }
 
 .pagination-num-btn.active {
-  background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: none;
   font-weight: 600;
 }
 
@@ -646,9 +649,10 @@ html.light .pagination-num-btn:hover {
 }
 
 html.light .pagination-num-btn.active {
-  background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
-  color: #fff;
-  box-shadow: 0 0 10px rgba(0, 180, 216, 0.2);
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--text-primary);
+  box-shadow: none;
 }
 
 /* 行内登录超链接按钮 */
@@ -682,4 +686,73 @@ html.light .cloud-login-link-inline-btn:hover {
   color: #0096c7;
   text-shadow: none;
 }
+
+/* ================= 在线搜索未搜索前的空白引导页样式 (Search Guide) ================= */
+.cloud-search-guide-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  animation: fadeInSplash 0.5s ease-out;
+}
+
+.cloud-search-guide-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px; /* 和外面完全一致的 22px 凝聚间距 */
+}
+
+.cloud-search-guide-img {
+  width: 280px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  opacity: 0.85;
+  pointer-events: none;
+  user-select: none;
+}
+
+.cloud-search-guide-text-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px; /* 文字两行之间的精致小间距 */
+}
+
+.cloud-search-guide-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+.cloud-search-guide-subtext {
+  font-size: 12px;
+  color: var(--text-dim);
+  opacity: 0.6; /* 稍淡一些，主次分明 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.cloud-search-guide-subtext .cloud-login-link-inline-btn {
+  font-size: 12px;
+  margin-left: 2px;
+  margin-right: 2px;
+  text-decoration: underline;
+  color: #00d2ff;
+}
+
+html.light .cloud-search-guide-subtext .cloud-login-link-inline-btn {
+  color: #0077b6;
+}
+
+@keyframes fadeInSplash {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 
