@@ -29,6 +29,10 @@ function App(): React.JSX.Element {
     instrumentMode,
     isMiniMode,
     theme,
+    playbackShortcut,
+    stopShortcut,
+    speedUpShortcut,
+    speedDownShortcut,
 
     setMidiFiles,
     selectFile,
@@ -51,6 +55,10 @@ function App(): React.JSX.Element {
     setMiniMode,
     bgOpacity,
     setTheme,
+    setPlaybackShortcut,
+    setStopShortcut,
+    setSpeedUpShortcut,
+    setSpeedDownShortcut,
     setBgOpacity
   } = useAppStore(useShallow((state) => ({
     midiFiles: state.midiFiles,
@@ -72,6 +80,10 @@ function App(): React.JSX.Element {
     isMiniMode: state.isMiniMode,
     bgOpacity: state.bgOpacity,
     theme: state.theme,
+    playbackShortcut: state.playbackShortcut,
+    stopShortcut: state.stopShortcut,
+    speedUpShortcut: state.speedUpShortcut,
+    speedDownShortcut: state.speedDownShortcut,
 
     setMidiFiles: state.setMidiFiles,
     selectFile: state.selectFile,
@@ -92,7 +104,12 @@ function App(): React.JSX.Element {
     setStartDelaySec: state.setStartDelaySec,
     setInstrumentMode: state.setInstrumentMode,
     setMiniMode: state.setMiniMode,
-    setTheme: state.setTheme
+    setTheme: state.setTheme,
+    setPlaybackShortcut: state.setPlaybackShortcut,
+    setStopShortcut: state.setStopShortcut,
+    setSpeedUpShortcut: state.setSpeedUpShortcut,
+    setSpeedDownShortcut: state.setSpeedDownShortcut,
+    setBgOpacity: state.setBgOpacity
   })))
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -192,6 +209,85 @@ function App(): React.JSX.Element {
     })
     return () => unsubscribe()
   }, [setLatestDownloadedMidi, selectFile, setMidiFiles])
+
+  // === 注册并监听全局快捷键 ===
+  const handlePlayPauseRef = useRef<() => void>(() => {})
+  const handleStopRef = useRef<() => void>(() => {})
+  
+  useEffect(() => {
+    // 自动迁移旧的不生效的 +- 快捷键到方向上下键 Up/Down
+    let speedUp = useAppStore.getState().speedUpShortcut
+    let speedDown = useAppStore.getState().speedDownShortcut
+    let playback = useAppStore.getState().playbackShortcut
+    
+    if (['+', 'plus', 'Plus'].includes(speedUp)) {
+      useAppStore.getState().setSpeedUpShortcut('PageUp')
+      speedUp = 'PageUp'
+    } else if (speedUp === 'Up') {
+      useAppStore.getState().setSpeedUpShortcut('PageUp')
+      speedUp = 'PageUp'
+    }
+    
+    if (['-', 'minus', 'Minus'].includes(speedDown)) {
+      useAppStore.getState().setSpeedDownShortcut('PageDown')
+      speedDown = 'PageDown'
+    } else if (speedDown === 'Down') {
+      useAppStore.getState().setSpeedDownShortcut('PageDown')
+      speedDown = 'PageDown'
+    }
+
+    if (playback === 'F8') {
+      useAppStore.getState().setPlaybackShortcut('Home')
+      playback = 'Home'
+    }
+
+    // 注册保存的快捷键到主进程
+    if (playback) {
+      window.electronAPI.registerPlaybackShortcut(playback)
+    }
+
+    const stopShort = useAppStore.getState().stopShortcut
+    if (stopShort) {
+      window.electronAPI.registerStopShortcut(stopShort)
+    }
+
+    if (speedUp) {
+      window.electronAPI.registerSpeedUpShortcut(speedUp)
+    }
+
+    if (speedDown) {
+      window.electronAPI.registerSpeedDownShortcut(speedDown)
+    }
+
+    const unsubscribePlay = window.electronAPI.onPlaybackShortcutTriggered(() => {
+      handlePlayPauseRef.current()
+    })
+
+    const unsubscribeStop = window.electronAPI.onStopShortcutTriggered(() => {
+      handleStopRef.current()
+    })
+
+    const unsubscribeSpeedUp = window.electronAPI.onSpeedUpShortcutTriggered(() => {
+      const currentSpeed = useAppStore.getState().playbackSpeed
+      const setSpeed = useAppStore.getState().setPlaybackSpeed
+      // 增加速度，最高限制 2.0，以 0.1 步长变化
+      setSpeed(Math.min(2.0, currentSpeed + 0.1))
+    })
+
+    const unsubscribeSpeedDown = window.electronAPI.onSpeedDownShortcutTriggered(() => {
+      const currentSpeed = useAppStore.getState().playbackSpeed
+      const setSpeed = useAppStore.getState().setPlaybackSpeed
+      // 减少速度，最低限制 0.25，以 0.1 步长变化
+      setSpeed(Math.max(0.25, currentSpeed - 0.1))
+    })
+
+    return () => {
+      unsubscribePlay()
+      unsubscribeStop()
+      unsubscribeSpeedUp()
+      unsubscribeSpeedDown()
+    }
+  }, [])
 
   // === 音频预览设置同步 ===
   useEffect(() => {
@@ -313,10 +409,19 @@ function App(): React.JSX.Element {
     }
   }
 
+  // 保持 handlePlayPause 的引用最新，防止闭包捕获旧状态
+  useEffect(() => {
+    handlePlayPauseRef.current = handlePlayPause
+  }, [handlePlayPause])
+
   const handleStop = () => {
     engineRef.current?.stop()
     setDelayCountdown(null)
   }
+
+  useEffect(() => {
+    handleStopRef.current = handleStop
+  }, [handleStop])
 
   const handleSeek = (timeMs: number) => {
     engineRef.current?.seek(timeMs)
@@ -508,6 +613,14 @@ function App(): React.JSX.Element {
         onAudioPreviewEnabledChange={setAudioPreviewEnabled}
         theme={theme}
         onThemeChange={setTheme}
+        playbackShortcut={playbackShortcut}
+        onPlaybackShortcutChange={setPlaybackShortcut}
+        stopShortcut={stopShortcut}
+        onStopShortcutChange={setStopShortcut}
+        speedUpShortcut={speedUpShortcut}
+        onSpeedUpShortcutChange={setSpeedUpShortcut}
+        speedDownShortcut={speedDownShortcut}
+        onSpeedDownShortcutChange={setSpeedDownShortcut}
       />
     </div>
   )

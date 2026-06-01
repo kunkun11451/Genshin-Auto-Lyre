@@ -229,3 +229,37 @@ input:checked + .toggle-slider:before {
   transform: translateX(16px);
   background-color: var(--bg-primary);
 }
+
+/* === 快捷键录制按钮 === */
+.shortcut-record-btn {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  min-width: 140px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.shortcut-record-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--text-secondary);
+}
+
+.shortcut-record-btn.recording {
+  background: rgba(233, 69, 96, 0.15);
+  border-color: #e94560;
+  color: #e94560;
+  animation: shortcut-pulse 1.5s infinite;
+}
+
+@keyframes shortcut-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}

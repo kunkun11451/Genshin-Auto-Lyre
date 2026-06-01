@@ -60,6 +60,10 @@ interface AppState {
   minInterval: number
   minDuration: number
   theme: 'system' | 'light' | 'dark'
+  playbackShortcut: string
+  stopShortcut: string
+  speedUpShortcut: string
+  speedDownShortcut: string
 
   // ===== Actions =====
   setMidiFiles: (files: MidiFileInfo[]) => void
@@ -86,6 +90,10 @@ interface AppState {
   setTranspose: (transpose: number) => void
   setStartDelaySec: (sec: number) => void
   setTheme: (theme: 'system' | 'light' | 'dark') => void
+  setPlaybackShortcut: (shortcut: string) => void
+  setStopShortcut: (shortcut: string) => void
+  setSpeedUpShortcut: (shortcut: string) => void
+  setSpeedDownShortcut: (shortcut: string) => void
 }
 
 // ============================================================
@@ -122,6 +130,10 @@ export const useAppStore = create<AppState>()(
       minInterval: DEFAULT_MAPPER_OPTIONS.minInterval,
       minDuration: DEFAULT_MAPPER_OPTIONS.minDuration,
       theme: 'system',
+      playbackShortcut: 'Home',
+      stopShortcut: 'End',
+      speedUpShortcut: 'PageUp',
+      speedDownShortcut: 'PageDown',
 
       // ===== Actions =====
 
@@ -179,7 +191,28 @@ export const useAppStore = create<AppState>()(
 
       setStartDelaySec: (sec) => set({ startDelaySec: Math.max(0, Math.min(10, sec)) }),
 
-      setTheme: (theme) => set({ theme })
+      setTheme: (theme) => set({ theme }),
+      
+      setPlaybackShortcut: (shortcut) => {
+        set({ playbackShortcut: shortcut })
+        // 通知主进程更新快捷键
+        window.electronAPI.registerPlaybackShortcut(shortcut)
+      },
+
+      setStopShortcut: (shortcut) => {
+        set({ stopShortcut: shortcut })
+        window.electronAPI.registerStopShortcut(shortcut)
+      },
+
+      setSpeedUpShortcut: (shortcut) => {
+        set({ speedUpShortcut: shortcut })
+        window.electronAPI.registerSpeedUpShortcut(shortcut)
+      },
+
+      setSpeedDownShortcut: (shortcut) => {
+        set({ speedDownShortcut: shortcut })
+        window.electronAPI.registerSpeedDownShortcut(shortcut)
+      }
     }),
     {
       name: 'genshin-auto-lyre-storage',
@@ -191,7 +224,11 @@ export const useAppStore = create<AppState>()(
         transpose: state.transpose,
         startDelaySec: state.startDelaySec,
         bgOpacity: state.bgOpacity,
-        theme: state.theme
+        theme: state.theme,
+        playbackShortcut: state.playbackShortcut,
+        stopShortcut: state.stopShortcut,
+        speedUpShortcut: state.speedUpShortcut,
+        speedDownShortcut: state.speedDownShortcut
       })
     }
   )

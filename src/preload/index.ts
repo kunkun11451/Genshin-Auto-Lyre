@@ -44,6 +44,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
   keyUp: (key: string) => ipcRenderer.send('keyboard:keyUp', key),
   /** 批量模拟按键 */
   keyBatch: (downs: string[], ups: string[]) => ipcRenderer.send('keyboard:keyBatch', downs, ups),
+  /** 注册全局播放控制快捷键 */
+  registerPlaybackShortcut: (shortcut: string) => ipcRenderer.send('shortcut:register', shortcut),
+  /** 监听全局播放控制快捷键触发 */
+  onPlaybackShortcutTriggered: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('shortcut:triggered', handler)
+    return () => ipcRenderer.off('shortcut:triggered', handler)
+  },
+  /** 注册全局停止控制快捷键 */
+  registerStopShortcut: (shortcut: string) => ipcRenderer.send('shortcut:registerStop', shortcut),
+  /** 监听全局停止快捷键触发 */
+  onStopShortcutTriggered: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('shortcut:stopTriggered', handler)
+    return () => ipcRenderer.off('shortcut:stopTriggered', handler)
+  },
+  /** 注册全局加速快捷键 */
+  registerSpeedUpShortcut: (shortcut: string) => ipcRenderer.send('shortcut:registerSpeedUp', shortcut),
+  /** 监听全局加速快捷键触发 */
+  onSpeedUpShortcutTriggered: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('shortcut:speedUpTriggered', handler)
+    return () => ipcRenderer.off('shortcut:speedUpTriggered', handler)
+  },
+  /** 注册全局减速快捷键 */
+  registerSpeedDownShortcut: (shortcut: string) => ipcRenderer.send('shortcut:registerSpeedDown', shortcut),
+  /** 监听全局减速快捷键触发 */
+  onSpeedDownShortcutTriggered: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('shortcut:speedDownTriggered', handler)
+    return () => ipcRenderer.off('shortcut:speedDownTriggered', handler)
+  },
 
   // ===== 在线曲库 =====
   /** 初始化 webview 的 session（CSP 剥离 + 下载拦截） */

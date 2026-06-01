@@ -18,6 +18,14 @@ interface SettingsPanelProps {
   onAudioPreviewEnabledChange: (val: boolean) => void
   theme: 'system' | 'light' | 'dark'
   onThemeChange: (val: 'system' | 'light' | 'dark') => void
+  playbackShortcut: string
+  onPlaybackShortcutChange: (val: string) => void
+  stopShortcut: string
+  onStopShortcutChange: (val: string) => void
+  speedUpShortcut: string
+  onSpeedUpShortcutChange: (val: string) => void
+  speedDownShortcut: string
+  onSpeedDownShortcutChange: (val: string) => void
 }
 
 export function SettingsPanel({
@@ -34,10 +42,103 @@ export function SettingsPanel({
   audioPreviewEnabled,
   onAudioPreviewEnabledChange,
   theme,
-  onThemeChange
+  onThemeChange,
+  playbackShortcut,
+  onPlaybackShortcutChange,
+  stopShortcut,
+  onStopShortcutChange,
+  speedUpShortcut,
+  onSpeedUpShortcutChange,
+  speedDownShortcut,
+  onSpeedDownShortcutChange
 }: SettingsPanelProps): React.JSX.Element | null {
   const [shouldRender, setShouldRender] = useState(isOpen)
   const [isClosing, setIsClosing] = useState(false)
+  const [recordingType, setRecordingType] = useState<'playback' | 'stop' | 'speedUp' | 'speedDown' | null>(null)
+
+  // 快捷键录制事件监听
+  useEffect(() => {
+    if (!recordingType) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const key = e.key
+      // 如果按下 Esc，清空该快捷键，表示不使用任何快捷键
+      if (key === 'Escape') {
+        if (recordingType === 'playback') onPlaybackShortcutChange('')
+        if (recordingType === 'stop') onStopShortcutChange('')
+        if (recordingType === 'speedUp') onSpeedUpShortcutChange('')
+        if (recordingType === 'speedDown') onSpeedDownShortcutChange('')
+        setRecordingType(null)
+        return
+      }
+
+      // 忽略演奏时涉及到的 21 个字母键，直接不响应，不给提示；以及忽略单独按下的修饰键
+      const gameKeys = new Set(['q', 'w', 'e', 'r', 't', 'y', 'u', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'z', 'x', 'c', 'v', 'b', 'n', 'm'])
+      const isModifierActive = e.ctrlKey || e.altKey || e.shiftKey || e.metaKey
+      const singleBlockedKeys = new Set(['+', '-', '=', '/'])
+
+      if (
+        gameKeys.has(key.toLowerCase()) || 
+        ['Control', 'Shift', 'Alt', 'Meta'].includes(key) ||
+        (!isModifierActive && singleBlockedKeys.has(key))
+      ) {
+        return
+      }
+
+      const parts: string[] = []
+      if (e.ctrlKey) parts.push('Ctrl')
+      if (e.altKey) parts.push('Alt')
+      if (e.shiftKey) parts.push('Shift')
+      if (e.metaKey) parts.push('Cmd')
+
+      let mainKey = key
+      if (key === ' ') {
+        mainKey = 'Space'
+      } else if (key === '+' || key === '=') {
+        mainKey = '+'
+      } else if (key === '-') {
+        mainKey = '-'
+      } else if (key.length === 1) {
+        mainKey = key.toUpperCase()
+      } else {
+        const keyMap: Record<string, string> = {
+          'ArrowUp': 'Up',
+          'ArrowDown': 'Down',
+          'ArrowLeft': 'Left',
+          'ArrowRight': 'Right',
+          'Escape': 'Escape',
+          'Enter': 'Enter',
+          'Tab': 'Tab',
+          'Backspace': 'Backspace',
+          'Delete': 'Delete',
+          'Insert': 'Insert',
+          'Home': 'Home',
+          'End': 'End',
+          'PageUp': 'PageUp',
+          'PageDown': 'PageDown',
+          'Pause': 'Pause'
+        }
+        mainKey = keyMap[key] || key
+      }
+
+      parts.push(mainKey)
+      const accelerator = parts.join('+')
+
+      if (recordingType === 'playback') onPlaybackShortcutChange(accelerator)
+      if (recordingType === 'stop') onStopShortcutChange(accelerator)
+      if (recordingType === 'speedUp') onSpeedUpShortcutChange(accelerator)
+      if (recordingType === 'speedDown') onSpeedDownShortcutChange(accelerator)
+      setRecordingType(null)
+    }
+
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true)
+    }
+  }, [recordingType, onPlaybackShortcutChange, onStopShortcutChange, onSpeedUpShortcutChange, onSpeedDownShortcutChange])
 
   useEffect(() => {
     if (isOpen) {
@@ -50,6 +151,19 @@ export function SettingsPanel({
   }, [isOpen])
 
   if (!shouldRender) return null
+
+  const formatDisplayShortcut = (shortcut: string) => {
+    if (!shortcut) return '已禁用'
+    return shortcut
+      .split('+')
+      .map(part => {
+        const lower = part.toLowerCase()
+        if (lower === 'plus') return '+'
+        if (lower === 'minus') return '-'
+        return part
+      })
+      .join('+')
+  }
 
   const handleStrategyChange = (octave: keyof BlackKeyConfig, val: BlackKeyStrategy) => {
     onBlackKeyConfigChange({ ...blackKeyConfig, [octave]: val })
@@ -180,6 +294,54 @@ export function SettingsPanel({
                 />
                 <span className="toggle-slider"></span>
               </label>
+            </div>
+          </div>
+
+          {/* 全局热键设置 */}
+          <div className="settings-group" style={{ marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <Sliders size={16} color="var(--text-dim)" />
+              <h3>热键设置</h3>
+            </div>
+            <div className="setting-item">
+              <label>暂停 / 播放</label>
+              <button 
+                className={`shortcut-record-btn ${recordingType === 'playback' ? 'recording' : ''}`}
+                onClick={() => setRecordingType('playback')}
+                title="点击后按下快捷键"
+              >
+                {recordingType === 'playback' ? '请按下按键...' : formatDisplayShortcut(playbackShortcut)}
+              </button>
+            </div>
+            <div className="setting-item">
+              <label>停止</label>
+              <button 
+                className={`shortcut-record-btn ${recordingType === 'stop' ? 'recording' : ''}`}
+                onClick={() => setRecordingType('stop')}
+                title="点击后按下快捷键"
+              >
+                {recordingType === 'stop' ? '请按下按键...' : formatDisplayShortcut(stopShortcut)}
+              </button>
+            </div>
+            <div className="setting-item">
+              <label>演奏加速</label>
+              <button 
+                className={`shortcut-record-btn ${recordingType === 'speedUp' ? 'recording' : ''}`}
+                onClick={() => setRecordingType('speedUp')}
+                title="点击后按下快捷键"
+              >
+                {recordingType === 'speedUp' ? '请按下按键...' : formatDisplayShortcut(speedUpShortcut)}
+              </button>
+            </div>
+            <div className="setting-item">
+              <label>演奏减速</label>
+              <button 
+                className={`shortcut-record-btn ${recordingType === 'speedDown' ? 'recording' : ''}`}
+                onClick={() => setRecordingType('speedDown')}
+                title="点击后按下快捷键"
+              >
+                {recordingType === 'speedDown' ? '请按下按键...' : formatDisplayShortcut(speedDownShortcut)}
+              </button>
             </div>
           </div>
           

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, globalShortcut } from 'electron'
 import { join, dirname } from 'path'
 import { readFile, readdir, stat, mkdir, rename } from 'fs/promises'
 import { watch } from 'fs'
@@ -167,6 +167,132 @@ function createWindow(): BrowserWindow {
 
   ipcMain.on('keyboard:keyBatch', (_event, downs: string[], ups: string[]) => {
     simulateKeyBatch(downs, ups)
+  })
+
+  // ===== 全局快捷键 IPC =====
+  function normalizeAccelerator(shortcut: string): string {
+    return shortcut
+      .split('+')
+      .map(part => {
+        const lower = part.trim().toLowerCase()
+        if (lower === '=') return '+'
+        if (lower === 'plus') return '+'
+        if (lower === 'minus') return '-'
+        // 首字母大写，确保符合 Electron 规范
+        if (lower.length > 1) {
+          return part.charAt(0).toUpperCase() + part.slice(1)
+        }
+        return part.toUpperCase()
+      })
+      .join('+')
+  }
+
+  let currentShortcut = ''
+  ipcMain.on('shortcut:register', (_event, shortcut: string) => {
+    if (currentShortcut) {
+      try {
+        globalShortcut.unregister(normalizeAccelerator(currentShortcut))
+      } catch (err) {
+        console.error('Failed to unregister old shortcut:', err)
+      }
+    }
+    currentShortcut = shortcut
+    if (shortcut) {
+      try {
+        const norm = normalizeAccelerator(shortcut)
+        const isRegistered = globalShortcut.register(norm, () => {
+          if (!mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('shortcut:triggered')
+          }
+        })
+        if (!isRegistered) {
+          console.error(`Failed to register global shortcut: ${norm}`)
+        }
+      } catch (err) {
+        console.error(`Error registering shortcut ${shortcut}:`, err)
+      }
+    }
+  })
+
+  let stopShortcut = ''
+  ipcMain.on('shortcut:registerStop', (_event, shortcut: string) => {
+    if (stopShortcut) {
+      try {
+        globalShortcut.unregister(normalizeAccelerator(stopShortcut))
+      } catch (err) {
+        console.error('Failed to unregister stop shortcut:', err)
+      }
+    }
+    stopShortcut = shortcut
+    if (shortcut) {
+      try {
+        const norm = normalizeAccelerator(shortcut)
+        const isRegistered = globalShortcut.register(norm, () => {
+          if (!mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('shortcut:stopTriggered')
+          }
+        })
+        if (!isRegistered) {
+          console.error(`Failed to register stop shortcut: ${norm}`)
+        }
+      } catch (err) {
+        console.error(`Error registering stop shortcut ${shortcut}:`, err)
+      }
+    }
+  })
+
+  let speedUpShortcut = ''
+  ipcMain.on('shortcut:registerSpeedUp', (_event, shortcut: string) => {
+    if (speedUpShortcut) {
+      try {
+        globalShortcut.unregister(normalizeAccelerator(speedUpShortcut))
+      } catch (err) {
+        console.error('Failed to unregister speedUp shortcut:', err)
+      }
+    }
+    speedUpShortcut = shortcut
+    if (shortcut) {
+      try {
+        const norm = normalizeAccelerator(shortcut)
+        const isRegistered = globalShortcut.register(norm, () => {
+          if (!mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('shortcut:speedUpTriggered')
+          }
+        })
+        if (!isRegistered) {
+          console.error(`Failed to register speedUp shortcut: ${norm}`)
+        }
+      } catch (err) {
+        console.error(`Error registering speedUp shortcut ${shortcut}:`, err)
+      }
+    }
+  })
+
+  let speedDownShortcut = ''
+  ipcMain.on('shortcut:registerSpeedDown', (_event, shortcut: string) => {
+    if (speedDownShortcut) {
+      try {
+        globalShortcut.unregister(normalizeAccelerator(speedDownShortcut))
+      } catch (err) {
+        console.error('Failed to unregister speedDown shortcut:', err)
+      }
+    }
+    speedDownShortcut = shortcut
+    if (shortcut) {
+      try {
+        const norm = normalizeAccelerator(shortcut)
+        const isRegistered = globalShortcut.register(norm, () => {
+          if (!mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('shortcut:speedDownTriggered')
+          }
+        })
+        if (!isRegistered) {
+          console.error(`Failed to register speedDown shortcut: ${norm}`)
+        }
+      } catch (err) {
+        console.error(`Error registering speedDown shortcut ${shortcut}:`, err)
+      }
+    }
   })
 
   // ===== 在线曲库 IPC =====
@@ -340,17 +466,10 @@ function createWindow(): BrowserWindow {
       }
     })
 
-    // 检测用户页面跳转，一旦跳转进入个人中心，代表登录彻底成功，延迟 1.5 秒自动关闭窗口并通知大窗口自动重刷！
-    loginWin.webContents.on('did-navigate', (_event, url) => {
-      if (url.includes('midishow.com/user/account') && !url.includes('login')) {
-        setTimeout(() => {
-          if (!loginWin.isDestroyed()) {
-            loginWin.close()
-          }
-          if (!mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('midi:loginSuccess')
-          }
-        }, 1500)
+    // 监听登录窗口关闭事件，等用户手动关闭后通知大窗口自动重刷以读取最新状态
+    loginWin.on('closed', () => {
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('midi:loginSuccess')
       }
     })
 
@@ -416,6 +535,7 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   destroyKeyboardSimulator()
+  globalShortcut.unregisterAll()
 })
 
 // 递归扫描目录内 MIDI 文件

@@ -22,6 +22,14 @@ interface ElectronAPI {
   keyDown: (key: string) => void
   keyUp: (key: string) => void
   keyBatch: (downs: string[], ups: string[]) => void
+  registerPlaybackShortcut: (shortcut: string) => void
+  onPlaybackShortcutTriggered: (callback: () => void) => () => void
+  registerStopShortcut: (shortcut: string) => void
+  onStopShortcutTriggered: (callback: () => void) => () => void
+  registerSpeedUpShortcut: (shortcut: string) => void
+  onSpeedUpShortcutTriggered: (callback: () => void) => () => void
+  registerSpeedDownShortcut: (shortcut: string) => void
+  onSpeedDownShortcutTriggered: (callback: () => void) => () => void
 
   // 在线曲库
   setupMidiSession: (partitionName: string) => void
