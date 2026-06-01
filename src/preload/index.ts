@@ -42,6 +42,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   keyDown: (key: string) => ipcRenderer.send('keyboard:keyDown', key),
   /** 模拟按键释放 */
   keyUp: (key: string) => ipcRenderer.send('keyboard:keyUp', key),
+  /** 批量模拟按键 */
+  keyBatch: (downs: string[], ups: string[]) => ipcRenderer.send('keyboard:keyBatch', downs, ups),
 
   // ===== 在线曲库 =====
   /** 初始化 webview 的 session（CSP 剥离 + 下载拦截） */

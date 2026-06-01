@@ -181,6 +181,17 @@ export function simulateKeyUp(key: string): void {
   }
 }
 
+export function simulateKeyBatch(downs: string[], ups: string[]): void {
+  if (helperProcess && helperProcess.stdin) {
+    let payload = ''
+    for (const key of downs) payload += `down ${key}\n`
+    for (const key of ups) payload += `up ${key}\n`
+    if (payload) {
+      helperProcess.stdin.write(payload)
+    }
+  }
+}
+
 export function destroyKeyboardSimulator(): void {
   if (helperProcess && helperProcess.stdin) {
     helperProcess.stdin.write('exit\n')

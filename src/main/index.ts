@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join, dirname } from 'path'
 import { readFile, readdir, stat, mkdir, rename } from 'fs/promises'
 import { watch } from 'fs'
-import { initKeyboardSimulator, simulateKeyDown, simulateKeyUp, destroyKeyboardSimulator } from './keyboard-simulator'
+import { initKeyboardSimulator, simulateKeyDown, simulateKeyUp, simulateKeyBatch, destroyKeyboardSimulator } from './keyboard-simulator'
 
 // 判断是否为开发模式
 const isDev = !app.isPackaged
@@ -163,6 +163,10 @@ function createWindow(): BrowserWindow {
 
   ipcMain.on('keyboard:keyUp', (_event, key: string) => {
     simulateKeyUp(key)
+  })
+
+  ipcMain.on('keyboard:keyBatch', (_event, downs: string[], ups: string[]) => {
+    simulateKeyBatch(downs, ups)
   })
 
   // ===== 在线曲库 IPC =====

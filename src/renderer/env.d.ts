@@ -21,6 +21,7 @@ interface ElectronAPI {
   // 键盘模拟
   keyDown: (key: string) => void
   keyUp: (key: string) => void
+  keyBatch: (downs: string[], ups: string[]) => void
 
   // 在线曲库
   setupMidiSession: (partitionName: string) => void

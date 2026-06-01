@@ -125,30 +125,39 @@ function App(): React.JSX.Element {
 
   // ===== IPC 监听 =====
   const engineRef = useRef<PlaybackEngine | null>(null)
+  const batchedDownsRef = useRef<string[]>([])
+  const batchedUpsRef = useRef<string[]>([])
 
   useEffect(() => {
     // 初始化播放引擎
     engineRef.current = new PlaybackEngine({
       onTick: (timeMs) => {
         setCurrentTime(timeMs)
+        
+        // 批量发送当前帧的所有按键事件给主进程，避免高频 IPC 通信阻塞渲染进程导致卡顿
+        const downs = batchedDownsRef.current
+        const ups = batchedUpsRef.current
+        if (downs.length > 0 || ups.length > 0) {
+          if (!useAppStore.getState().audioPreviewEnabled) {
+            window.electronAPI.keyBatch(downs, ups)
+          }
+          batchedDownsRef.current = []
+          batchedUpsRef.current = []
+        }
       },
       onNoteOn: (note) => {
         addActiveKey(note.key)
         audioPreview.noteOn(note.midiNote, note.velocity)
         
-        // 调用键盘模拟 IPC
-        if (!useAppStore.getState().audioPreviewEnabled) {
-          window.electronAPI.keyDown(note.key)
-        }
+        // 收集按下按键
+        batchedDownsRef.current.push(note.key)
       },
       onNoteOff: (note) => {
         removeActiveKey(note.key)
         audioPreview.noteOff(note.midiNote)
         
-        // 调用键盘模拟 IPC
-        if (!useAppStore.getState().audioPreviewEnabled) {
-          window.electronAPI.keyUp(note.key)
-        }
+        // 收集释放按键
+        batchedUpsRef.current.push(note.key)
       },
       onStateChange: (state) => {
         setPlaybackState(state)
