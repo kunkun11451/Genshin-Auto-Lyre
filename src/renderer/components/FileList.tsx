@@ -36,15 +36,18 @@ export function FileList({
   const [editName, setEditName] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // 找出是否有刚刚下载的文件
+  const latestDownloadedFile = files.find(f => f.path === latestDownloadedMidi)
+
+  // 过滤出符合搜索条件的文件，同时排除刚刚下载的文件（避免重复）
   const filteredFiles = files.filter(f => 
-    f.name.toLowerCase().includes(searchQuery.toLowerCase())
+    f.path !== latestDownloadedMidi && f.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const displayFiles = [...filteredFiles].sort((a, b) => {
-    if (a.path === latestDownloadedMidi) return -1
-    if (b.path === latestDownloadedMidi) return 1
-    return 0
-  })
+  // 最终显示的列表：如果存在新下载的文件，无视搜索状态直接拼接到最前面
+  const displayFiles = latestDownloadedFile 
+    ? [latestDownloadedFile, ...filteredFiles]
+    : filteredFiles
 
   // 关闭右键菜单
   useEffect(() => {
@@ -155,14 +158,7 @@ export function FileList({
               <FileMusic size={14} style={{ marginRight: '8px', color: isActive ? 'var(--text-primary)' : 'var(--text-dim)' }} />
               
               {file.path === latestDownloadedMidi && (
-                <span style={{ 
-                  background: 'var(--primary)', 
-                  color: '#fff', 
-                  fontSize: '10px', 
-                  padding: '2px 4px', 
-                  borderRadius: '4px', 
-                  marginRight: '6px'
-                }}>新</span>
+                <span className="file-badge-new">新</span>
               )}
 
               {isEditing ? (

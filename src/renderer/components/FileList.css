@@ -28,7 +28,7 @@
 .btn-add {
   background: transparent;
   color: var(--text-secondary);
-  border: 1px dashed var(--border-color);
+  border: 1px solid var(--border-color);
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -47,6 +47,21 @@
   border-bottom: var(--glass-border);
 }
 
+.search-box .btn-add {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.search-box .btn-add:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
+
 .search-box input {
   width: 100%;
   background: rgba(0, 0, 0, 0.2);
@@ -61,7 +76,8 @@
 
 .search-box input:focus {
   border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.12); /* 优雅的深色暗白色光效 */
 }
 
 .file-items {
@@ -177,3 +193,84 @@
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* ================= 浅色模式右键菜单适配 (Light Mode Context Menu) ================= */
+html.light .context-menu {
+  background: rgba(250, 250, 253, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+html.light .context-menu-item {
+  color: #121212;
+}
+
+html.light .context-menu-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+html.light .context-menu-item.danger {
+  color: #ff4d4f;
+}
+
+html.light .context-menu-item.danger:hover {
+  background: rgba(255, 77, 79, 0.1);
+}
+
+/* ================= 浅色模式文件列表项悬浮适配 (Light Mode File Items Hover) ================= */
+html.light .file-item:hover {
+  background: rgba(0, 0, 0, 0.06); /* 使用柔和中性微暗色，保证悬浮在浅色背景下绝对清晰明显 */
+  color: var(--text-primary);
+}
+
+html.light .file-item.active {
+  background: rgba(0, 0, 0, 0.09); /* 激活项采用微深的中性黑 */
+  color: var(--text-primary);
+}
+
+/* ================= 浅色模式本地曲库搜索栏及按钮适配 (Light Mode Search Box) ================= */
+html.light .search-box input {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+html.light .search-box input:focus {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.25); /* 优雅的黑灰色边框 */
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.06); /* 精致的淡灰色光效 */
+}
+
+html.light .search-box .btn-add {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+html.light .search-box .btn-add:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.06);
+}
+
+/* ================= “新”下载标签样式 (New Download Badge) ================= */
+.file-badge-new {
+  background: var(--primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1.5px 5px;
+  border-radius: 4px;
+  margin-right: 6px;
+  display: inline-block;
+  line-height: 1.2;
+}
+
+html.light .file-badge-new {
+  background: rgba(0, 180, 216, 0.15); /* 优雅微透淡蓝色背景 */
+  color: #0077b6; /* 统一的高级湖蓝色高亮文字 */
+}
+
+

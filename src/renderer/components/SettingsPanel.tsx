@@ -16,8 +16,8 @@ interface SettingsPanelProps {
   onStartDelaySecChange: (val: number) => void
   audioPreviewEnabled: boolean
   onAudioPreviewEnabledChange: (val: boolean) => void
-  bgOpacity: number
-  onBgOpacityChange: (val: number) => void
+  theme: 'system' | 'light' | 'dark'
+  onThemeChange: (val: 'system' | 'light' | 'dark') => void
 }
 
 export function SettingsPanel({
@@ -33,8 +33,8 @@ export function SettingsPanel({
   onStartDelaySecChange,
   audioPreviewEnabled,
   onAudioPreviewEnabledChange,
-  bgOpacity,
-  onBgOpacityChange
+  theme,
+  onThemeChange
 }: SettingsPanelProps): React.JSX.Element | null {
   const [shouldRender, setShouldRender] = useState(isOpen)
   const [isClosing, setIsClosing] = useState(false)
@@ -76,13 +76,25 @@ export function SettingsPanel({
               <h3>乐器模式</h3>
             </div>
             <div className="setting-item">
-              <label>选择乐器（影响高音映射与和弦识别）</label>
+              <label>选择乐器</label>
               <select 
                 value={instrumentMode} 
                 onChange={(e) => onInstrumentModeChange(e.target.value as 'standard' | 'chord')}
               >
-                <option value="standard">普通琴 (经典 21 音)</option>
-                <option value="chord">和弦琴 (高音区智能合成和弦)</option>
+                <option value="standard">普通琴</option>
+                <option value="chord">和弦琴(低可用性)</option>
+              </select>
+            </div>
+            
+            <div className="setting-item" style={{ marginTop: '12px' }}>
+              <label>主题外观</label>
+              <select 
+                value={theme} 
+                onChange={(e) => onThemeChange(e.target.value as 'system' | 'light' | 'dark')}
+              >
+                <option value="system">跟随系统</option>
+                <option value="dark">深色模式</option>
+                <option value="light">浅色模式</option>
               </select>
             </div>
           </div>
@@ -101,8 +113,8 @@ export function SettingsPanel({
               >
                 <option value="skip">不演奏</option>
                 <option value="dual">双键演奏</option>
-                <option value="floor">向下映射 (左侧白键)</option>
-                <option value="ceil">向上映射 (右侧白键)</option>
+                <option value="floor">向下映射</option>
+                <option value="ceil">向上映射</option>
                 <option value="nearest">就近映射</option>
               </select>
             </div>
@@ -159,7 +171,7 @@ export function SettingsPanel({
               />
             </div>
             <div className="setting-item">
-              <label>软件音频预览</label>
+              <label>midi试听(打开后将关闭键盘操作)</label>
               <label className="toggle-switch">
                 <input 
                   type="checkbox" 
@@ -168,19 +180,6 @@ export function SettingsPanel({
                 />
                 <span className="toggle-slider"></span>
               </label>
-            </div>
-            <div className="setting-item">
-              <label>界面背景透明度</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{Math.round(bgOpacity * 100)}%</span>
-                <input 
-                  type="range" 
-                  min="0.0" max="1.0" step="0.05"
-                  value={bgOpacity} 
-                  onChange={(e) => onBgOpacityChange(parseFloat(e.target.value))}
-                  style={{ width: '100px', accentColor: 'var(--text-primary)' }}
-                />
-              </div>
             </div>
           </div>
           

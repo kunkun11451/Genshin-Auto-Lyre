@@ -1,6 +1,6 @@
 .title-bar {
   height: 38px;
-  background: rgba(20, 20, 20, calc(0.4 * var(--bg-opacity)));
+  background: var(--title-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: var(--glass-border);
@@ -45,7 +45,7 @@
 }
 
 .title-bar-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hover-bg);
   color: var(--text-primary);
 }
 

@@ -59,6 +59,7 @@ interface AppState {
   startDelaySec: number
   minInterval: number
   minDuration: number
+  theme: 'system' | 'light' | 'dark'
 
   // ===== Actions =====
   setMidiFiles: (files: MidiFileInfo[]) => void
@@ -84,9 +85,7 @@ interface AppState {
   setBlackKeyConfig: (config: BlackKeyConfig) => void
   setTranspose: (transpose: number) => void
   setStartDelaySec: (sec: number) => void
-
-  bgOpacity: number
-  setBgOpacity: (opacity: number) => void
+  setTheme: (theme: 'system' | 'light' | 'dark') => void
 }
 
 // ============================================================
@@ -122,7 +121,7 @@ export const useAppStore = create<AppState>()(
       startDelaySec: 3,
       minInterval: DEFAULT_MAPPER_OPTIONS.minInterval,
       minDuration: DEFAULT_MAPPER_OPTIONS.minDuration,
-      bgOpacity: 0.8,
+      theme: 'system',
 
       // ===== Actions =====
 
@@ -160,7 +159,15 @@ export const useAppStore = create<AppState>()(
 
       clearActiveKeys: () => set({ activeKeys: new Set() }),
 
-      setMiniMode: (isMini) => set({ isMiniMode: isMini }),
+      setMiniMode: (isMini) => {
+        if (isMini === get().isMiniMode) return // 状态一致时不处理，防止重复隐藏窗口造成闪烁
+        // 先发送 IPC 让主进程隐藏并调整窗口
+        window.electronAPI.setMiniMode(isMini)
+        // 延迟一点点更新 React 状态，确保主进程已经把窗口隐藏了，从而避免看到页面内部排版的闪烁
+        setTimeout(() => {
+          set({ isMiniMode: isMini })
+        }, 50)
+      },
 
       setAudioPreviewEnabled: (enabled) => set({ audioPreviewEnabled: enabled }),
 
@@ -172,7 +179,7 @@ export const useAppStore = create<AppState>()(
 
       setStartDelaySec: (sec) => set({ startDelaySec: Math.max(0, Math.min(10, sec)) }),
 
-      setBgOpacity: (opacity) => set({ bgOpacity: Math.max(0, Math.min(1, opacity)) })
+      setTheme: (theme) => set({ theme })
     }),
     {
       name: 'genshin-auto-lyre-storage',
@@ -183,7 +190,8 @@ export const useAppStore = create<AppState>()(
         blackKeyConfig: state.blackKeyConfig,
         transpose: state.transpose,
         startDelaySec: state.startDelaySec,
-        bgOpacity: state.bgOpacity
+        bgOpacity: state.bgOpacity,
+        theme: state.theme
       })
     }
   )

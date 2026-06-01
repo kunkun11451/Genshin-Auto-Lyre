@@ -13,6 +13,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleAlwaysOnTop: () => ipcRenderer.invoke('window:toggleAlwaysOnTop'),
   /** 设置小窗模式 */
   setMiniMode: (isMini: boolean) => ipcRenderer.send('window:setMiniMode', isMini),
+  /** 监听最大化状态变化 */
+  onMaximizedStateChanged: (callback: (isMaximized: boolean) => void) => {
+    const handler = (_event: any, isMaximized: boolean) => callback(isMaximized)
+    ipcRenderer.on('window:maximizedState', handler)
+    return () => ipcRenderer.off('window:maximizedState', handler)
+  },
 
   // ===== 文件操作 =====
   /** 获取专属文件夹下所有 MIDI 文件 */
@@ -45,5 +51,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_e: any, path: string) => callback(path)
     ipcRenderer.on('midi:downloaded', handler)
     return () => ipcRenderer.off('midi:downloaded', handler)
+  },
+  /** 发送云端搜索请求 */
+  fetchCloudSearch: (url: string) => ipcRenderer.invoke('midi:fetchCloudSearch', url),
+  /** 发送后台静默下载请求 */
+  downloadCloudMidi: (url: string) => ipcRenderer.invoke('midi:downloadCloudMidi', url),
+  /** 打开登录小窗口进行登录 */
+  openLoginWindow: () => ipcRenderer.send('midi:openLogin'),
+  /** 监听登录成功事件 */
+  onLoginSuccess: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('midi:loginSuccess', handler)
+    return () => ipcRenderer.off('midi:loginSuccess', handler)
   }
 })

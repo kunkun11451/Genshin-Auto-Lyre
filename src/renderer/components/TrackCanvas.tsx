@@ -77,15 +77,18 @@ export function TrackCanvas({
     // 1. 绘制背景网格
     const numRows = GAME_NOTES.length
     const rowHeight = height / numRows
+    const isLight = document.documentElement.classList.contains('light')
     
     ctx.lineWidth = 1
     for (let i = 0; i < numRows; i++) {
       const y = i * rowHeight
       // 交替明暗行
-      ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.1)'
+      ctx.fillStyle = isLight 
+        ? (i % 2 === 0 ? 'rgba(0, 0, 0, 0.02)' : 'rgba(0, 0, 0, 0.05)')
+        : (i % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.1)')
       ctx.fillRect(0, y, width, rowHeight)
       // 横向网格线
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'
+      ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)'
       ctx.beginPath()
       ctx.moveTo(0, y)
       ctx.lineTo(width, y)
@@ -126,14 +129,18 @@ export function TrackCanvas({
       if (note.chordName) {
         ctx.fillStyle = 'rgba(255, 215, 0, 0.85)' // 金色高亮和弦
       } else {
-        ctx.fillStyle = note.isDualGenerated ? 'rgba(180, 180, 180, 0.85)' : 'rgba(255, 255, 255, 0.85)'
+        if (isLight) {
+          ctx.fillStyle = note.isDualGenerated ? 'rgba(100, 100, 100, 0.85)' : 'rgba(40, 40, 40, 0.85)'
+        } else {
+          ctx.fillStyle = note.isDualGenerated ? 'rgba(180, 180, 180, 0.85)' : 'rgba(255, 255, 255, 0.85)'
+        }
       }
       ctx.beginPath()
       ctx.roundRect(x, y + 2, w, rowHeight - 4, 4)
       ctx.fill()
 
       if (note.chordName && w > 20) {
-        ctx.fillStyle = '#000'
+        ctx.fillStyle = isLight ? '#fff' : '#000'
         ctx.font = '10px sans-serif'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'

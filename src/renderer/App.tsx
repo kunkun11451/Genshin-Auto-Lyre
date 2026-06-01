@@ -6,6 +6,7 @@ import { parseMidiBuffer } from './core/midi-parser'
 import { mapNotes } from './core/note-mapper'
 import { PlaybackEngine } from './core/playback-engine'
 import { audioPreview } from './core/audio-preview'
+import startImg from '../../resources/start.png'
 
 function App(): React.JSX.Element {
   // === 状态 ===
@@ -27,6 +28,7 @@ function App(): React.JSX.Element {
     minDuration,
     instrumentMode,
     isMiniMode,
+    theme,
 
     setMidiFiles,
     selectFile,
@@ -47,7 +49,9 @@ function App(): React.JSX.Element {
     setStartDelaySec,
     setInstrumentMode,
     setMiniMode,
-    bgOpacity
+    bgOpacity,
+    setTheme,
+    setBgOpacity
   } = useAppStore(useShallow((state) => ({
     midiFiles: state.midiFiles,
     currentFilePath: state.currentFilePath,
@@ -67,6 +71,7 @@ function App(): React.JSX.Element {
     instrumentMode: state.instrumentMode,
     isMiniMode: state.isMiniMode,
     bgOpacity: state.bgOpacity,
+    theme: state.theme,
 
     setMidiFiles: state.setMidiFiles,
     selectFile: state.selectFile,
@@ -86,13 +91,39 @@ function App(): React.JSX.Element {
     setTranspose: state.setTranspose,
     setStartDelaySec: state.setStartDelaySec,
     setInstrumentMode: state.setInstrumentMode,
-    setMiniMode: state.setMiniMode
+    setMiniMode: state.setMiniMode,
+    setTheme: state.setTheme
   })))
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [delayCountdown, setDelayCountdown] = useState<number | null>(null)
 
-  // === 播放引擎单例 ===
+  // ===== 主题管理 =====
+  useEffect(() => {
+    const applyTheme = () => {
+      const isLight = 
+        theme === 'light' || 
+        (theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches)
+      
+      if (isLight) {
+        document.documentElement.classList.add('light')
+      } else {
+        document.documentElement.classList.remove('light')
+      }
+    }
+
+    applyTheme()
+    
+    // 监听系统主题变化
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: light)')
+    const listener = () => {
+      if (theme === 'system') applyTheme()
+    }
+    mediaQuery.addEventListener('change', listener)
+    return () => mediaQuery.removeEventListener('change', listener)
+  }, [theme])
+
+  // ===== IPC 监听 =====
   const engineRef = useRef<PlaybackEngine | null>(null)
 
   useEffect(() => {
@@ -148,11 +179,10 @@ function App(): React.JSX.Element {
       
       setLatestDownloadedMidi(path)
       selectFile(path)
-      setMidiShowUrl(null) // 下载完成后自动关闭内嵌浏览器
       setTimeout(() => window.focus(), 50) // 恢复窗口焦点
     })
     return () => unsubscribe()
-  }, [setLatestDownloadedMidi, selectFile, setMidiFiles, setMidiShowUrl])
+  }, [setLatestDownloadedMidi, selectFile, setMidiFiles])
 
   // === 音频预览设置同步 ===
   useEffect(() => {
@@ -311,17 +341,10 @@ function App(): React.JSX.Element {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', position: 'relative' }}>
-      {/* 动态透明度背景层 */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: -1,
-        background: 'radial-gradient(circle at 15% 50%, #2a2a35 0%, #0d0d0d 60%), radial-gradient(circle at 85% 30%, #1a1a24 0%, #0a0a0a 50%)',
-        opacity: bgOpacity
-      }} />
-
       <TitleBar />
       
       {isMiniMode ? (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <div key="mini" className="mode-container" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <div style={{ width: '100%', height: '100%' }}>
               <FileList 
@@ -365,9 +388,9 @@ function App(): React.JSX.Element {
           />
         </div>
       ) : (
-        <>
+        <div key="normal" className="mode-container">
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
-            <PianoKeyboard />
+            {!midiShowUrl && currentFilePath && <PianoKeyboard />}
             
             {midiShowUrl ? (
               <MidiShowBrowser 
@@ -377,7 +400,7 @@ function App(): React.JSX.Element {
                   setTimeout(() => window.focus(), 50) // 恢复窗口焦点，防止输入框失效
                 }} 
               />
-            ) : (
+            ) : currentFilePath ? (
               <TrackCanvas 
                 originalNotes={parsedMidi?.allNotes || []}
                 mappedNotes={mappedNotes}
@@ -385,6 +408,13 @@ function App(): React.JSX.Element {
                 isPlaying={playbackState === 'playing'}
                 onSeek={handleSeek}
               />
+            ) : (
+              <div className="empty-midi-splash">
+                <div className="empty-splash-logo-container">
+                  <img src={startImg} className="empty-splash-logo" alt="Start Splash" draggable="false" />
+                  <div className="empty-splash-text">选择一首 MIDI 音乐开始演奏</div>
+                </div>
+              </div>
             )}
             
             <div className="layout-sidebar" style={{ width: '280px', flexShrink: 0, borderLeft: 'var(--glass-border)' }}>
@@ -441,7 +471,7 @@ function App(): React.JSX.Element {
             onOpenSettings={() => setIsSettingsOpen(true)}
             isMiniMode={false}
           />
-        </>
+        </div>
       )}
 
       <SettingsPanel 
@@ -457,8 +487,8 @@ function App(): React.JSX.Element {
         onStartDelaySecChange={setStartDelaySec}
         audioPreviewEnabled={audioPreviewEnabled}
         onAudioPreviewEnabledChange={setAudioPreviewEnabled}
-        bgOpacity={bgOpacity}
-        onBgOpacityChange={useAppStore.getState().setBgOpacity}
+        theme={theme}
+        onThemeChange={setTheme}
       />
     </div>
   )

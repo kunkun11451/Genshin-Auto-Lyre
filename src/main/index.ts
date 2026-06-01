@@ -15,15 +15,16 @@ const midiDirPath = isDev
 // 创建主窗口
 function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 960,
+    height: 640,
     minWidth: 960,
     minHeight: 640,
-    frame: false, // 无边框窗口
-    transparent: true,
+    titleBarStyle: 'hidden',
+    transparent: false,
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: '#00000000',
+    backgroundColor: '#121212',
+    icon: join(__dirname, '../../resources/icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -36,6 +37,14 @@ function createWindow(): BrowserWindow {
   // 窗口准备就绪后显示，避免白屏闪烁
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+  })
+
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window:maximizedState', true)
+  })
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window:maximizedState', false)
   })
 
   // 拦截新窗口请求，在外部浏览器中打开
@@ -58,7 +67,7 @@ function createWindow(): BrowserWindow {
 
   ipcMain.on('window:maximize', () => {
     if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize()
+      mainWindow.restore()
     } else {
       mainWindow.maximize()
     }
@@ -82,20 +91,45 @@ function createWindow(): BrowserWindow {
   let standardBounds: Electron.Rectangle | null = null
 
   ipcMain.on('window:setMiniMode', (_event, isMini: boolean) => {
+    const currentBounds = mainWindow.getBounds()
+    // 改用透明度为0，避免系统级的隐藏动画带来的视觉残留
+    mainWindow.setOpacity(0)
+
     if (isMini) {
-      standardBounds = mainWindow.getBounds()
+      standardBounds = currentBounds
       // 解除原有的最小尺寸限制并设置为小窗尺寸
       mainWindow.setMinimumSize(360, 520)
-      mainWindow.setSize(360, 520)
+      
+      const newWidth = 360
+      const newHeight = 520
+      const newX = currentBounds.x + currentBounds.width - newWidth
+      const newY = currentBounds.y
+      
+      mainWindow.setBounds({ x: newX, y: newY, width: newWidth, height: newHeight })
     } else {
       // 恢复限制和尺寸
       mainWindow.setMinimumSize(960, 640)
       if (standardBounds) {
-        mainWindow.setBounds(standardBounds)
+        const newWidth = standardBounds.width
+        const newHeight = standardBounds.height
+        const newX = currentBounds.x + currentBounds.width - newWidth
+        const newY = currentBounds.y
+        
+        mainWindow.setBounds({ x: newX, y: newY, width: newWidth, height: newHeight })
       } else {
-        mainWindow.setSize(1280, 800)
+        const newWidth = 1280
+        const newHeight = 800
+        const newX = currentBounds.x + currentBounds.width - newWidth
+        const newY = currentBounds.y
+        
+        mainWindow.setBounds({ x: newX, y: newY, width: newWidth, height: newHeight })
       }
     }
+
+    // 等待一小段时间让 React 重新渲染排版完成，然后再恢复透明度
+    setTimeout(() => {
+      mainWindow.setOpacity(1)
+    }, 150)
   })
 
   // ===== 文件操作 IPC =====
@@ -168,11 +202,166 @@ function createWindow(): BrowserWindow {
     })
   })
 
+  // 抓取云端 HTML 页面内容（使用曲库专属 Session，以自动附带 Cookie 登录凭证）
+  ipcMain.handle('midi:fetchCloudSearch', async (_event, url: string) => {
+    try {
+      const { net, session } = require('electron')
+      const ses = session.fromPartition('persist:midishow')
+      
+      const response = await net.fetch(url, {
+        session: ses, // 核心：使用指定的共享 Session 分区发送请求以带上 Cookie
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const html = await response.text()
+      return { success: true, html }
+    } catch (err: any) {
+      console.error('Fetch cloud search error:', err)
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 后台无头下载 MIDI
+  ipcMain.handle('midi:downloadCloudMidi', async (_event, url: string) => {
+    try {
+      const downloadWin = new BrowserWindow({
+        show: false, // 全程完全隐藏
+        width: 800,
+        height: 600,
+        webPreferences: {
+          partition: 'persist:midishow', // 共享相同的 Session，确保 Cookie 和拦截器有效
+          nodeIntegration: false,
+          contextIsolation: true,
+          sandbox: false
+        }
+      })
+
+      // 后台浏览器始终保持静音，防止试听网页播放出声音打扰用户
+      downloadWin.webContents.audioMuted = true
+
+      // 网页加载成功后，不断检测 JZZ，并模拟点击试听播放按钮触发拦截下载
+      downloadWin.webContents.on('did-finish-load', () => {
+        let retries = 0
+        const interval = setInterval(() => {
+          if (downloadWin.isDestroyed()) {
+            clearInterval(interval)
+            return
+          }
+
+          downloadWin.webContents.executeJavaScript(`
+            (function() {
+              // 1. 确保注入 JZZ 拦截脚本以捕获音频流并转为本地下载
+              if (typeof JZZ !== "undefined" && JZZ.MIDI && JZZ.MIDI.SMF) {
+                if (!window._hijacked_registered) {
+                  window._hijacked_registered = true;
+                  var Original_JZZ_MIDI_SMF = JZZ.MIDI.SMF;
+                  JZZ.MIDI.SMF = function(Midi_File){
+                    var Midi_File_Name = document.title.replace(" MIDI 音乐下载试听 :: MidiShow","") + ".mid"
+                    var Midi_File_Binary_Array = new Uint8Array(Midi_File.length);
+                    for (var Binary_Pointer = 0; Binary_Pointer < Midi_File.length ; Binary_Pointer++) { 
+                      Midi_File_Binary_Array[Binary_Pointer] = Midi_File.charCodeAt(Binary_Pointer);
+                    }
+                    var Midi_File_Blob = new Blob([Midi_File_Binary_Array],{type:''});
+                    var Midi_File_Url = URL.createObjectURL(Midi_File_Blob);
+                    var Midi_Downloader = document.createElement("a");
+                    Midi_Downloader.setAttribute("href",Midi_File_Url);
+                    Midi_Downloader.setAttribute("download",Midi_File_Name);
+                    Midi_Downloader.setAttribute("target","_blank");
+                    let Click_Event = document.createEvent("MouseEvents");
+                    Click_Event.initEvent("click",true,true);
+                    Midi_Downloader.dispatchEvent(Click_Event);
+                    return Original_JZZ_MIDI_SMF(Midi_File);
+                  }
+                  console.log('JZZ SMF Hijacked inside hidden window!');
+                }
+              }
+
+              // 2. 模拟点击试听按钮
+              var playBtn = document.querySelector('.j-play.ms-player-play');
+              if (playBtn) {
+                playBtn.click();
+                return { success: true, msg: 'Clicked' };
+              }
+              return { success: false, msg: 'Waiting play button' };
+            })()
+          `).then((res) => {
+            if (res && res.success) {
+              clearInterval(interval)
+              // 给 8 秒缓冲时间，供 will-download 拦截并静默下载文件，然后销毁窗口
+              setTimeout(() => {
+                if (!downloadWin.isDestroyed()) {
+                  downloadWin.destroy()
+                }
+              }, 8000)
+            }
+          }).catch((err) => {
+            console.error('Execute inject script error:', err)
+          })
+
+          if (retries++ > 30) { // 30秒超时自毁
+            clearInterval(interval)
+            if (!downloadWin.isDestroyed()) {
+              downloadWin.destroy()
+            }
+          }
+        }, 1000)
+      })
+
+      // 加载页面
+      await downloadWin.loadURL(url)
+      return { success: true }
+    } catch (err: any) {
+      console.error('Download cloud midi error:', err)
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 打开登录小窗口进行在线曲库账号登录
+  ipcMain.on('midi:openLogin', () => {
+    const { BrowserWindow } = require('electron')
+    const loginWin = new BrowserWindow({
+      width: 520,
+      height: 640,
+      title: '登录到 MidiShow',
+      autoHideMenuBar: true,
+      webPreferences: {
+        partition: 'persist:midishow', // 核心：共用同一 session，以将 Cookie 共享并持久化
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: false
+      }
+    })
+
+    // 检测用户页面跳转，一旦跳转进入个人中心，代表登录彻底成功，延迟 1.5 秒自动关闭窗口并通知大窗口自动重刷！
+    loginWin.webContents.on('did-navigate', (_event, url) => {
+      if (url.includes('midishow.com/user/account') && !url.includes('login')) {
+        setTimeout(() => {
+          if (!loginWin.isDestroyed()) {
+            loginWin.close()
+          }
+          if (!mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('midi:loginSuccess')
+          }
+        }, 1500)
+      }
+    })
+
+    loginWin.loadURL('https://www.midishow.com/user/account/login')
+  })
+
   return mainWindow
 }
 
 // 应用准备就绪后创建窗口
 app.whenReady().then(async () => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.tanqin.genshinautolyre')
+  }
+
   // 确保目录存在
   try {
     await mkdir(midiDirPath, { recursive: true })

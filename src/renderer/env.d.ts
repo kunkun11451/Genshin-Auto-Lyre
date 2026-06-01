@@ -8,6 +8,7 @@ interface ElectronAPI {
   close: () => void
   toggleAlwaysOnTop: () => Promise<boolean>
   setMiniMode: (isMini: boolean) => void
+  onMaximizedStateChanged: (callback: (isMaximized: boolean) => void) => () => void
 
   // ===== 文件操作 =====
   listMidiFiles: () => Promise<string[]>
@@ -24,6 +25,10 @@ interface ElectronAPI {
   // 在线曲库
   setupMidiSession: (partitionName: string) => void
   onMidiDownloaded: (callback: (path: string) => void) => () => void
+  fetchCloudSearch: (url: string) => Promise<{ success: boolean; html?: string; error?: string }>
+  downloadCloudMidi: (url: string) => Promise<{ success: boolean; error?: string }>
+  openLoginWindow: () => void
+  onLoginSuccess: (callback: () => void) => () => void
 }
 
 declare global {

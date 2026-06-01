@@ -1,12 +1,20 @@
-import { useState } from 'react'
-import { Minus, Square, X, Music, Pin, PinOff, PictureInPicture } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Minus, Square, X, Music, Pin, PinOff, PictureInPicture, Copy } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import './TitleBar.css'
 
 export function TitleBar(): React.JSX.Element {
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false)
+  const [isMaximized, setIsMaximized] = useState(false)
   const isMiniMode = useAppStore(state => state.isMiniMode)
   const setMiniMode = useAppStore(state => state.setMiniMode)
+
+  useEffect(() => {
+    const cleanup = window.electronAPI.onMaximizedStateChanged((maximized) => {
+      setIsMaximized(maximized)
+    })
+    return cleanup
+  }, [])
 
   const handleMinimize = () => window.electronAPI.minimize()
   const handleMaximize = () => window.electronAPI.maximize()
@@ -18,7 +26,6 @@ export function TitleBar(): React.JSX.Element {
   const handleToggleMiniMode = () => {
     const newMode = !isMiniMode
     setMiniMode(newMode)
-    window.electronAPI.setMiniMode(newMode)
   }
 
   return (
@@ -45,7 +52,9 @@ export function TitleBar(): React.JSX.Element {
           {isAlwaysOnTop ? <PinOff size={14} /> : <Pin size={14} />}
         </button>
         <button className="title-bar-btn" onClick={handleMinimize}><Minus size={16} /></button>
-        <button className="title-bar-btn" onClick={handleMaximize}><Square size={12} /></button>
+        <button className="title-bar-btn" onClick={handleMaximize} title={isMaximized ? "向下还原" : "最大化"}>
+          {isMaximized ? <Copy size={14} /> : <Square size={14} />}
+        </button>
         <button className="title-bar-btn close" onClick={handleClose}><X size={16} /></button>
       </div>
     </div>

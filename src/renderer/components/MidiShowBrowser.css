@@ -1,92 +1,685 @@
-/* MidiShow 内嵌浏览器样式 */
+/* 现代本地化在线曲库 (DAW 风格) 样式系统 */
 
-.midishow-browser {
+.midishow-browser-local {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: var(--bg-secondary);
+  background: var(--bg-primary); /* 和外部主窗口背景灰色完全一致 */
+  overflow-y: auto;
+  position: relative;
+  -ms-overflow-style: none;  /* IE and Edge 隐藏滚动条 */
+  scrollbar-width: none;  /* Firefox 隐藏滚动条 */
 }
 
-.midishow-toolbar {
+/* Chrome, Safari, Opera 隐藏滚动条 */
+.midishow-browser-local::-webkit-scrollbar {
+  display: none;
+}
+
+/* 顶部搜索头 */
+.cloud-search-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 21px 20px 22px 20px; 
+  box-sizing: border-box;
+  height: 116px; 
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+.cloud-search-title-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
 }
 
-.midishow-toolbar-btn {
+.cloud-search-logo {
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+}
+
+.cloud-search-subtitle {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.cloud-close-btn {
+  margin-left: auto;
   background: none;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 6px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.midishow-toolbar-btn:hover {
+.cloud-close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  transform: rotate(90deg);
+}
+
+/* 搜索表单 */
+.cloud-search-form {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.cloud-search-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.cloud-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.cloud-search-input {
+  width: 100%;
+  height: 38px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0 16px 0 40px;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cloud-search-input:focus {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
+}
+
+.cloud-search-btn {
+  height: 38px;
+  padding: 0 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.cloud-search-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
   color: var(--text-primary);
 }
 
-.midishow-close-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+.cloud-search-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.midishow-toolbar-title {
+/* 主体结果列表区 */
+.cloud-search-body {
   flex: 1;
-  font-size: 12px;
-  color: var(--text-secondary);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.midi-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 结果卡片 */
+.midi-result-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 20px;
+}
+
+.midi-result-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(0, 210, 255, 0.15);
+  transform: translateX(4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.midi-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.midi-card-title-container h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.midishow-hijack-badge {
-  font-size: 11px;
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.12);
-  padding: 2px 8px;
-  border-radius: 10px;
+/* 高亮命中关键词 */
+.cloud-search-highlight {
+  color: #ffb703;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 183, 3, 0.35);
+  font-style: normal;
+}
+
+.midi-card-desc {
+  font-size: 12px;
+  color: var(--text-dim);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.midi-card-desc .cloud-search-highlight {
+  color: #ffb703;
+  font-style: normal;
+}
+
+/* 元数据网格 */
+.midi-meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.midi-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.meta-icon {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.midi-card-right {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
 }
 
-.midishow-content {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
+/* 导入按钮 */
+.import-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08); /* 回归基础的扁平灰边，保持克制 */
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.midishow-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(10, 10, 15, 0.85);
-  backdrop-filter: blur(4px);
+.import-action-btn:hover {
+  background: rgba(0, 210, 255, 0.08); /* 极克制的扁平淡蓝色半透明背景 */
+  color: #00d2ff; /* 文字微亮 */
+  border-color: rgba(0, 210, 255, 0.35); /* 边框微亮 */
+}
+
+.import-action-btn.loading {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-dim);
+  border-color: rgba(255, 255, 255, 0.05);
+  cursor: not-allowed;
+}
+
+.import-action-btn.success {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
+  cursor: default;
+}
+
+/* 状态展示 */
+.cloud-search-status-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  z-index: 10;
-  color: var(--text-secondary);
-  font-size: 13px;
+  flex: 1;
+  padding: 60px 20px;
+  text-align: center;
 }
 
+/* 音频波形 Loading */
+.wave-loading-indicator {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  height: 40px;
+  margin-bottom: 20px;
+}
+
+.wave-bar {
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to top, #3a7bd5, #00d2ff);
+  border-radius: 2px;
+  animation: wave 1.2s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.wave-bar:nth-child(1) { animation-delay: -1.2s; }
+.wave-bar:nth-child(2) { animation-delay: -1.05s; }
+.wave-bar:nth-child(3) { animation-delay: -0.9s; }
+.wave-bar:nth-child(4) { animation-delay: -0.75s; }
+.wave-bar:nth-child(5) { animation-delay: -0.6s; }
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.2); }
+  50% { transform: scaleY(1); }
+}
+
+.loading-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+/* 错误与空卡片 */
+.error-card, .empty-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 30px 40px;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.error-icon, .empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.error-msg {
+  font-size: 12px;
+  color: #ef4444;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.retry-btn {
+  padding: 6px 16px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+.empty-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.empty-subtext {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* 底部导航分页 */
+.cloud-search-footer {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(18, 18, 26, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.cloud-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagination-arrow-btn {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-arrow-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.pagination-arrow-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 6px;
+}
+
+.pagination-num-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-num-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.pagination-num-btn.active {
+  background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
+  font-weight: 600;
+}
+
+/* 旋转加载动画 */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-.midishow-spinner {
+.spinner-icon {
   animation: spin 1s linear infinite;
-  color: var(--primary);
 }
+
+/* ================= 浅色模式适配 (Light Mode) ================= */
+
+html.light .midishow-browser-local {
+  background: var(--bg-primary); /* 浅色下同样与外部的浅灰白背景完美一致 */
+}
+
+html.light .cloud-search-header {
+  background: rgba(245, 245, 245, 0.85);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
+}
+
+html.light .cloud-search-logo {
+  background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 15px rgba(0, 180, 216, 0.1);
+}
+
+html.light .cloud-search-subtitle {
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+html.light .cloud-close-btn {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+html.light .cloud-close-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+html.light .cloud-search-input {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+html.light .cloud-search-input:focus {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.25); /* 优雅的黑灰色边框 */
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.06); /* 精致的淡灰色光效 */
+}
+
+html.light .cloud-search-btn {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+html.light .cloud-search-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.06);
+  transform: none;
+  filter: none;
+}
+
+html.light .midi-result-card {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+html.light .midi-result-card:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 180, 216, 0.18);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+html.light .midi-card-title-container h3 {
+  color: var(--text-primary);
+}
+
+html.light .cloud-search-highlight {
+  color: #d97706; /* 浅色模式下采用稍微深一些的琥珀金，以保障可读性 */
+  text-shadow: 0 0 8px rgba(217, 119, 6, 0.15);
+}
+
+html.light .midi-card-desc {
+  color: var(--text-secondary);
+}
+
+html.light .midi-card-desc .cloud-search-highlight {
+  color: #d97706;
+}
+
+html.light .midi-meta-item {
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--text-secondary);
+}
+
+html.light .meta-icon {
+  color: var(--text-secondary);
+}
+
+html.light .import-action-btn {
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--text-secondary);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+html.light .import-action-btn:hover {
+  background: rgba(0, 119, 182, 0.08); /* 极其克制的浅蓝色半透明底色 */
+  color: #0077b6; /* 湖蓝色文字高亮 */
+  border-color: rgba(0, 119, 182, 0.25); /* 边框微亮 */
+}
+
+html.light .import-action-btn.loading {
+  background: rgba(0, 0, 0, 0.01);
+  color: var(--text-dim);
+  border-color: rgba(0, 0, 0, 0.04);
+}
+
+html.light .import-action-btn.success {
+  background: rgba(22, 163, 74, 0.08);
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.18);
+  box-shadow: 0 0 12px rgba(22, 163, 74, 0.1);
+}
+
+html.light .wave-bar {
+  background: linear-gradient(to top, #0077b6, #00b4d8);
+}
+
+html.light .loading-text {
+  color: var(--text-secondary);
+}
+
+html.light .error-card, html.light .empty-card {
+  background: rgba(0, 0, 0, 0.01);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+html.light .empty-text {
+  color: var(--text-primary);
+}
+
+html.light .empty-subtext {
+  color: var(--text-secondary);
+}
+
+html.light .cloud-search-footer {
+  background: rgba(250, 250, 253, 0.5);
+  border-top: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+html.light .pagination-arrow-btn {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+}
+
+html.light .pagination-arrow-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+html.light .pagination-num-btn {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+}
+
+html.light .pagination-num-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+}
+
+html.light .pagination-num-btn.active {
+  background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(0, 180, 216, 0.2);
+}
+
+/* 行内登录超链接按钮 */
+.cloud-login-link-inline-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #00d2ff;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  display: inline-block;
+}
+
+.cloud-login-link-inline-btn:hover {
+  color: #3a7bd5;
+  text-shadow: 0 0 8px rgba(0, 210, 255, 0.4);
+  transform: scale(1.03);
+}
+
+/* 浅色模式下行内登录按钮适配 */
+html.light .cloud-login-link-inline-btn {
+  color: #0077b6;
+}
+
+html.light .cloud-login-link-inline-btn:hover {
+  color: #0096c7;
+  text-shadow: none;
+}
+
