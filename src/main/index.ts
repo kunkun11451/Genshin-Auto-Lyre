@@ -390,7 +390,7 @@ function createWindow(): BrowserWindow {
   ipcMain.handle('midi:downloadCloudMidi', async (_event, url: string) => {
     try {
       const downloadWin = new BrowserWindow({
-        show: false, // 全程完全隐藏
+        show: isDev, // 在开发模式下显示出窗口以便调试
         width: 800,
         height: 600,
         webPreferences: {
@@ -401,11 +401,15 @@ function createWindow(): BrowserWindow {
         }
       })
 
+      if (isDev) {
+        downloadWin.webContents.openDevTools()
+      }
+
       // 后台浏览器始终保持静音，防止试听网页播放出声音打扰用户
       downloadWin.webContents.audioMuted = true
 
-      // 网页加载成功后，不断检测 JZZ，并模拟点击试听播放按钮触发拦截下载
-      downloadWin.webContents.on('did-finish-load', () => {
+      // 使用 dom-ready 提前注入，不需要等待 did-finish-load (图片等资源加载完毕)
+      downloadWin.webContents.on('dom-ready', () => {
         let retries = 0
         const interval = setInterval(() => {
           if (downloadWin.isDestroyed()) {
@@ -414,62 +418,77 @@ function createWindow(): BrowserWindow {
           }
 
           downloadWin.webContents.executeJavaScript(`
-            (function() {
-              // 1. 确保注入 JZZ 拦截脚本以捕获音频流并转为本地下载
-              if (typeof JZZ !== "undefined" && JZZ.MIDI && JZZ.MIDI.SMF) {
-                if (!window._hijacked_registered) {
-                  window._hijacked_registered = true;
-                  var Original_JZZ_MIDI_SMF = JZZ.MIDI.SMF;
-                  JZZ.MIDI.SMF = function(Midi_File){
-                    var Midi_File_Name = document.title.replace(" MIDI 音乐下载试听 :: MidiShow","") + ".mid"
-                    var Midi_File_Binary_Array = new Uint8Array(Midi_File.length);
-                    for (var Binary_Pointer = 0; Binary_Pointer < Midi_File.length ; Binary_Pointer++) { 
-                      Midi_File_Binary_Array[Binary_Pointer] = Midi_File.charCodeAt(Binary_Pointer);
-                    }
-                    var Midi_File_Blob = new Blob([Midi_File_Binary_Array],{type:''});
-                    var Midi_File_Url = URL.createObjectURL(Midi_File_Blob);
-                    var Midi_Downloader = document.createElement("a");
-                    Midi_Downloader.setAttribute("href",Midi_File_Url);
-                    Midi_Downloader.setAttribute("download",Midi_File_Name);
-                    Midi_Downloader.setAttribute("target","_blank");
-                    let Click_Event = document.createEvent("MouseEvents");
-                    Click_Event.initEvent("click",true,true);
-                    Midi_Downloader.dispatchEvent(Click_Event);
-                    return Original_JZZ_MIDI_SMF(Midi_File);
-                  }
-                  console.log('JZZ SMF Hijacked inside hidden window!');
-                }
+            (async function() {
+              if (typeof window.$ === 'undefined' || typeof JZZ === 'undefined' || !JZZ.MIDI || !JZZ.MIDI.SMF) {
+                return { success: false, msg: 'Waiting for libraries' };
               }
 
-              // 2. 模拟点击试听按钮
-              var playBtn = document.querySelector('.j-play.ms-player-play');
-              if (playBtn) {
-                playBtn.click();
-                return { success: true, msg: 'Clicked' };
+              if (!window._hijacked_registered) {
+                window._hijacked_registered = true;
+                var Original_JZZ_MIDI_SMF = JZZ.MIDI.SMF;
+                JZZ.MIDI.SMF = function(Midi_File){
+                  var e = $('.ms-player-container');
+                  var id = e.data('id') || 'unknown';
+                  var titleElem = e.find('h1.pl-md-player');
+                  var title = titleElem.length ? titleElem.text().trim() : document.title.replace(" MIDI 音乐下载试听 :: MidiShow","");
+                  var Midi_File_Name = id + " - " + title + ".mid";
+                  
+                  var Midi_File_Binary_Array = new Uint8Array(Midi_File.length);
+                  for (var Binary_Pointer = 0; Binary_Pointer < Midi_File.length ; Binary_Pointer++) { 
+                    Midi_File_Binary_Array[Binary_Pointer] = Midi_File.charCodeAt(Binary_Pointer);
+                  }
+                  var Midi_File_Blob = new Blob([Midi_File_Binary_Array],{type:'audio/midi'});
+                  var Midi_File_Url = URL.createObjectURL(Midi_File_Blob);
+                  var Midi_Downloader = document.createElement("a");
+                  Midi_Downloader.setAttribute("href",Midi_File_Url);
+                  Midi_Downloader.setAttribute("download",Midi_File_Name);
+                  Midi_Downloader.setAttribute("target","_blank");
+                  let Click_Event = document.createEvent("MouseEvents");
+                  Click_Event.initEvent("click",true,true);
+                  Midi_Downloader.dispatchEvent(Click_Event);
+                  return Original_JZZ_MIDI_SMF(Midi_File);
+                }
+                console.log('JZZ SMF Hijacked for fast download!');
               }
-              return { success: false, msg: 'Waiting play button' };
+
+              var e = $('.ms-player-container');
+              if (e.length === 0) return { success: false, msg: 'Waiting container' };
+              
+              var plugin = e.JzzPlayer();
+              if (!plugin) return { success: false, msg: 'Waiting plugin' };
+              
+              var player = plugin.data('plugin_JzzPlayer');
+              if (!player) return { success: false, msg: 'Waiting player' };
+              
+              if (!window._download_triggered) {
+                window._download_triggered = true;
+                // 直接调用 loadUrl 而不是等待和点击播放按钮
+                await player.loadUrl();
+                return { success: true, msg: 'Triggered loadUrl' };
+              }
+              return { success: false, msg: 'Already triggered' };
             })()
           `).then((res) => {
             if (res && res.success) {
               clearInterval(interval)
-              // 给 8 秒缓冲时间，供 will-download 拦截并静默下载文件，然后销毁窗口
+              // 给 5 秒缓冲时间，供 will-download 拦截并静默下载文件，然后销毁窗口
               setTimeout(() => {
                 if (!downloadWin.isDestroyed()) {
                   downloadWin.destroy()
                 }
-              }, 8000)
+              }, 5000)
             }
           }).catch((err) => {
             console.error('Execute inject script error:', err)
           })
 
-          if (retries++ > 30) { // 30秒超时自毁
+          if (retries++ > 1000) { // 20秒超时自毁 (20ms * 1000)
             clearInterval(interval)
             if (!downloadWin.isDestroyed()) {
               downloadWin.destroy()
             }
           }
-        }, 1000)
+        }, 20)
       })
 
       // 加载页面

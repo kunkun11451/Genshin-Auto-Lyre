@@ -4,6 +4,66 @@ import { useAppStore } from '../store/useAppStore'
 import type { BlackKeyConfig, BlackKeyStrategy } from '../core/note-mapper'
 import './SettingsPanel.css'
 
+// 辅助解析行内粗体 **text**
+const parseInlineBold = (text: string): React.ReactNode[] => {
+  const parts = text.split(/\*\*([^*]+)\*\*/g)
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      return <strong key={i} style={{ fontWeight: 'bold' }}>{part}</strong>
+    }
+    return part
+  })
+}
+
+// 轻量 Markdown 解析器
+const parseMarkdown = (text: string) => {
+  if (!text) return null
+  const lines = text.split('\n')
+  return lines.map((line, index) => {
+    // 1. 处理标题 (### 或 ## 或 #)
+    const headerMatch = line.match(/^(#{1,6})\s+(.*)$/)
+    if (headerMatch) {
+      const level = headerMatch[1].length
+      const titleText = headerMatch[2]
+      return (
+        <div key={index} style={{ 
+          fontWeight: 'bold', 
+          fontSize: level === 3 ? '13px' : '14px', 
+          color: 'var(--text-primary)', 
+          marginTop: '6px', 
+          marginBottom: '2px' 
+        }}>
+          {parseInlineBold(titleText)}
+        </div>
+      )
+    }
+    
+    // 2. 处理无序列表 (- 或者是 * 开头)
+    const listMatch = line.match(/^(\s*)[-*+]\s+(.*)$/)
+    if (listMatch) {
+      const listText = listMatch[2]
+      return (
+        <div key={index} style={{ 
+          display: 'flex', 
+          paddingLeft: '8px', 
+          lineHeight: '1.6',
+          alignItems: 'flex-start'
+        }}>
+          <span style={{ marginRight: '6px', color: 'var(--text-secondary)' }}>•</span>
+          <span style={{ flex: 1 }}>{parseInlineBold(listText)}</span>
+        </div>
+      )
+    }
+    
+    // 3. 处理普通换行文本
+    return (
+      <div key={index} style={{ minHeight: '1.4em', lineHeight: '1.5' }}>
+        {parseInlineBold(line)}
+      </div>
+    )
+  })
+}
+
 interface SettingsPanelProps {
   isOpen: boolean
   onClose: () => void
@@ -421,8 +481,8 @@ export function SettingsPanel({
                 ) : updateStatus === 'available' ? (
                   <div style={{ background: 'var(--bg-highlight)', padding: '12px', borderRadius: '6px', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>发现新版本: v{updateInfo?.version}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-dim)', whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto' }}>
-                      {updateInfo?.releaseNotes}
+                    <div className="update-release-notes" style={{ fontSize: '12px', color: 'var(--text-secondary)', maxHeight: '120px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {parseMarkdown(updateInfo?.releaseNotes)}
                     </div>
                     <button 
                       onClick={handleStartUpdate}

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Search, FileMusic, FolderOpen, MoreVertical, Edit2, Trash2, Cloud } from 'lucide-react'
 import './FileList.css'
 import type { MidiFileInfo } from '../store/useAppStore'
+import { useAppStore } from '../store/useAppStore'
 
 interface FileListProps {
   files: MidiFileInfo[]
@@ -33,6 +34,9 @@ export function FileList({
   isCloudOpen = false,
   isMiniMode = false
 }: FileListProps): React.JSX.Element {
+  const globalMiniMode = useAppStore(state => state.isMiniMode)
+  const isVisible = isMiniMode === globalMiniMode
+
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, file: MidiFileInfo } | null>(null)
   const [editingFile, setEditingFile] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -106,6 +110,31 @@ export function FileList({
     setContextMenu(null)
   }
 
+  const fileItemsRef = useRef<HTMLDivElement>(null)
+
+  // 恢复和保存滚动位置（使用比例，解决大小窗列表项高度不同导致定位不准的问题）
+  useEffect(() => {
+    if (isVisible && fileItemsRef.current) {
+      const savedRatio = (window as any).__fileListScrollRatio || 0
+      // 延迟一帧确保 DOM 渲染完成
+      setTimeout(() => {
+        if (fileItemsRef.current) {
+          const el = fileItemsRef.current
+          el.scrollTop = savedRatio * (el.scrollHeight - el.clientHeight)
+        }
+      }, 0)
+    }
+  }, [isVisible, displayFiles.length])
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!isVisible) return
+    const el = e.currentTarget
+    const maxScroll = el.scrollHeight - el.clientHeight
+    if (maxScroll > 0) {
+      ;(window as any).__fileListScrollRatio = el.scrollTop / maxScroll
+    }
+  }
+
   return (
     <div className={`file-list ${isMiniMode ? 'mini-mode' : ''}`}>
       <div className="file-list-header">
@@ -147,7 +176,12 @@ export function FileList({
         </div>
       </div>
 
-      <div className="file-items" style={{ overflowY: contextMenu ? 'hidden' : 'auto' }}>
+      <div 
+        className="file-items" 
+        style={{ overflowY: contextMenu ? 'hidden' : 'auto' }}
+        ref={fileItemsRef}
+        onScroll={handleScroll}
+      >
         {displayFiles.map((file) => {
           const isActive = file.path === currentFilePath
           const isEditing = file.path === editingFile

@@ -48,6 +48,8 @@ interface AppState {
   // ===== 界面模式 =====
   isMiniMode: boolean
   setMiniMode: (isMini: boolean) => void
+  bgOpacity: number
+  setBgOpacity: (opacity: number) => void
 
   // ===== 音频预览 =====
   audioPreviewEnabled: boolean
@@ -132,6 +134,7 @@ export const useAppStore = create<AppState>()(
       activeKeys: new Set(),
 
       isMiniMode: false,
+      bgOpacity: 1.0,
 
       audioPreviewEnabled: false,
 
@@ -198,6 +201,8 @@ export const useAppStore = create<AppState>()(
           set({ isMiniMode: isMini })
         }, 50)
       },
+
+      setBgOpacity: (opacity) => set({ bgOpacity: Math.max(0.1, Math.min(1.0, opacity)) }),
 
       setAudioPreviewEnabled: (enabled) => set({ audioPreviewEnabled: enabled }),
 

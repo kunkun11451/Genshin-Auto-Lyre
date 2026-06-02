@@ -2,6 +2,9 @@ import { useEffect, useState, useRef } from 'react'
 import { X, Search, Clock, FileText, Music, Layers, Download, Check, RefreshCw } from 'lucide-react'
 import './MidiShowBrowser.css'
 import searchImg from '../../../resources/search.png'
+import searchGif from '../../../resources/search.gif'
+
+import { MidiShowAuthor } from './MidiShowAuthor'
 
 declare global {
   interface Window {
@@ -18,6 +21,9 @@ interface SearchResultItem {
   duration: string
   instrumentsCount: string
   tracksCount: string
+  authorName: string
+  authorAvatar: string
+  uploadTime: string
 }
 
 interface PageItem {
@@ -31,6 +37,9 @@ interface MidiShowBrowserProps {
 }
 
 export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.JSX.Element {
+  const [activeView, setActiveView] = useState<'search' | 'author'>('search')
+  const [currentAuthorName, setCurrentAuthorName] = useState('')
+
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -164,6 +173,36 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
       const barsDiv = div.querySelector('div[title="音轨数量"]')
       if (barsDiv) tracksCount = barsDiv.textContent?.replace(/\s+/g, ' ').trim() || '--'
       
+      let authorName = ''
+      let authorAvatar = ''
+      let uploadTime = ''
+      
+      const avatarImg = div.querySelector('.avatar-img') as HTMLImageElement | null
+      if (avatarImg) {
+        authorAvatar = avatarImg.getAttribute('src') || ''
+        authorName = avatarImg.getAttribute('alt') || ''
+      }
+      
+      const textMutedDiv = div.querySelector('.small.text-muted')
+      if (textMutedDiv) {
+        if (!authorName) {
+          const text = textMutedDiv.textContent || ''
+          const parts = text.split('•')
+          if (parts.length > 0) {
+            authorName = parts[0].trim()
+          }
+        }
+        
+        // Find the upload time from the span containing '上传于'
+        const spans = textMutedDiv.querySelectorAll('span')
+        spans.forEach(span => {
+          const txt = span.textContent?.trim() || ''
+          if (txt.includes('上传于') || txt.includes('前') || txt.match(/\d{4}-\d{2}-\d{2}/)) {
+            uploadTime = txt
+          }
+        })
+      }
+
       items.push({
         id,
         title: titleHtml,
@@ -172,7 +211,10 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
         fileSize,
         duration,
         instrumentsCount,
-        tracksCount
+        tracksCount,
+        authorName,
+        authorAvatar,
+        uploadTime
       })
     })
 
@@ -246,9 +288,20 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
     }
   }
 
+  const handleAuthorClick = (authorName: string) => {
+    if (!authorName) return
+    setCurrentAuthorName(authorName)
+    setActiveView('author')
+  }
+
   return (
-    <div className={`midishow-browser-local ${!lastSearchedQuery ? 'no-scroll' : ''}`} ref={containerRef}>
-      {/* 顶部工具栏与搜索区 */}
+    <>
+      <div 
+        className={`midishow-browser-local ${!lastSearchedQuery ? 'no-scroll' : ''}`} 
+        ref={containerRef}
+        style={{ display: activeView === 'search' ? 'flex' : 'none' }}
+      >
+        {/* 顶部工具栏与搜索区 */}
       <div className="cloud-search-header">
         <form onSubmit={handleSearchSubmit} className="cloud-search-form">
           <div className="cloud-search-input-wrapper">
@@ -271,14 +324,8 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
       <div className="cloud-search-body">
         {loading && (
           <div className="cloud-search-status-container">
-            <div className="wave-loading-indicator">
-              <div className="wave-bar"></div>
-              <div className="wave-bar"></div>
-              <div className="wave-bar"></div>
-              <div className="wave-bar"></div>
-              <div className="wave-bar"></div>
-            </div>
-            <div className="loading-text">正在从云端调取搜索结果...</div>
+            <img src={searchGif} className="cloud-search-loading-gif" alt="正在加载..." />
+            <div className="loading-text">正在调取搜索结果...</div>
           </div>
         )}
 
@@ -334,6 +381,23 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
               return (
                 <div className="midi-result-card" key={item.id}>
                   <div className="midi-card-left">
+                    <div 
+                      className={`midi-author-info ${item.authorName ? 'clickable' : ''}`} 
+                      onClick={() => handleAuthorClick(item.authorName)}
+                      title={item.authorName ? `点击查看 ${item.authorName} 的主页` : undefined}
+                    >
+                      {item.authorAvatar ? (
+                        <img src={item.authorAvatar} alt={item.authorName} className="midi-author-avatar" draggable="false" />
+                      ) : (
+                        <div className="midi-author-avatar-fallback">{item.authorName ? item.authorName.charAt(0).toUpperCase() : '?'}</div>
+                      )}
+                      <div className="midi-author-details">
+                        <span className="midi-author-name">{item.authorName || '匿名用户'}</span>
+                        {item.uploadTime && (
+                          <span className="midi-upload-time">{item.uploadTime}</span>
+                        )}
+                      </div>
+                    </div>
                     {renderHighlight(item.title, 'midi-card-title-container')}
                     {item.description && renderHighlight(item.description, 'midi-card-desc')}
                     
@@ -362,7 +426,7 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
                     {downloadState === 'idle' && (
                       <button className="import-action-btn" onClick={() => handleDownload(item)}>
                         <Download size={14} />
-                        <span>一键导入</span>
+                        <span>导入</span>
                       </button>
                     )}
                     
@@ -421,6 +485,18 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      {activeView === 'author' && (
+        <div className={`midishow-browser-local`} style={{ display: 'flex' }}>
+          <MidiShowAuthor 
+            authorName={currentAuthorName} 
+            onBack={() => setActiveView('search')} 
+            downloadStates={downloadStates}
+            onDownload={handleDownload}
+          />
+        </div>
+      )}
+    </>
   )
 }

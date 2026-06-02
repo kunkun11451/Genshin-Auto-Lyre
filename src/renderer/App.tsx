@@ -491,9 +491,8 @@ function App(): React.JSX.Element {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', position: 'relative' }}>
       <TitleBar />
       
-      {isMiniMode ? (
-        <div key="mini" className="mode-container" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
+      <div key="mini" className="mode-container" style={{ display: isMiniMode ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
             <div style={{ width: '100%', height: '100%' }}>
               <FileList 
                 files={midiFiles}
@@ -540,34 +539,38 @@ function App(): React.JSX.Element {
             isMiniMode={true}
           />
         </div>
-      ) : (
-        <div key="normal" className="mode-container">
-          <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+
+      <div key="normal" className="mode-container" style={{ display: isMiniMode ? 'none' : 'flex' }}>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
             {!midiShowUrl && currentFilePath && <PianoKeyboard />}
             
-            {midiShowUrl ? (
+            <div style={{ display: midiShowUrl ? 'flex' : 'none', flex: 1, overflow: 'hidden', position: 'relative', width: '100%', height: '100%' }}>
               <MidiShowBrowser 
-                url={midiShowUrl} 
+                url={midiShowUrl || 'https://www.midishow.com/'} 
                 onClose={() => {
                   setMidiShowUrl(null)
                   setTimeout(() => window.focus(), 50) // 恢复窗口焦点，防止输入框失效
                 }} 
               />
-            ) : currentFilePath ? (
-              <TrackCanvas 
-                originalNotes={parsedMidi?.allNotes || []}
-                mappedNotes={mappedNotes}
-                totalDurationMs={parsedMidi?.totalDurationMs || 0}
-                isPlaying={playbackState === 'playing'}
-                onSeek={handleSeek}
-              />
-            ) : (
-              <div className="empty-midi-splash">
-                <div className="empty-splash-logo-container">
-                  <img src={startImg} className="empty-splash-logo" alt="Start Splash" draggable="false" />
-                  <div className="empty-splash-text">选择一首 MIDI 音乐开始演奏</div>
+            </div>
+            
+            {!midiShowUrl && (
+              currentFilePath ? (
+                <TrackCanvas 
+                  originalNotes={parsedMidi?.allNotes || []}
+                  mappedNotes={mappedNotes}
+                  totalDurationMs={parsedMidi?.totalDurationMs || 0}
+                  isPlaying={playbackState === 'playing'}
+                  onSeek={handleSeek}
+                />
+              ) : (
+                <div className="empty-midi-splash">
+                  <div className="empty-splash-logo-container">
+                    <img src={startImg} className="empty-splash-logo" alt="Start Splash" draggable="false" />
+                    <div className="empty-splash-text">选择一首 MIDI 音乐开始演奏</div>
+                  </div>
                 </div>
-              </div>
+              )
             )}
             
             <div className="layout-sidebar" style={{ width: '280px', flexShrink: 0, borderLeft: 'var(--glass-border)' }}>
@@ -630,7 +633,6 @@ function App(): React.JSX.Element {
             isMiniMode={false}
           />
         </div>
-      )}
 
       <SettingsPanel 
         isOpen={isSettingsOpen}

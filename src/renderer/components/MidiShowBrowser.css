@@ -192,6 +192,68 @@
   overflow: hidden;
 }
 
+/* 上传者信息 */
+.midi-author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  padding: 4px;
+  transition: all 0.2s;
+}
+
+.midi-author-info.clickable {
+  cursor: pointer;
+}
+
+.midi-author-info.clickable:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+html.light .midi-author-info.clickable:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.midi-author-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.midi-author-avatar-fallback {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.midi-author-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.midi-author-name {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.midi-upload-time {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
 .midi-card-title-container h3 {
   font-size: 14px;
   font-weight: 600;
@@ -213,9 +275,9 @@
 .midi-card-desc {
   font-size: 12px;
   color: var(--text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.5;
   margin: 0;
 }
 
@@ -304,7 +366,15 @@
   text-align: center;
 }
 
-/* 音频波形 Loading */
+/* Loading */
+.cloud-search-loading-gif {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  margin-bottom: 16px;
+  border-radius: 12px;
+}
+
 .wave-loading-indicator {
   display: flex;
   align-items: flex-end;
@@ -551,6 +621,18 @@ html.light .midi-card-title-container h3 {
   color: var(--text-primary);
 }
 
+html.light .midi-author-name {
+  color: var(--text-primary);
+}
+
+html.light .midi-upload-time {
+  color: var(--text-secondary);
+}
+
+html.light .midi-author-avatar {
+  background: rgba(0, 0, 0, 0.05);
+}
+
 html.light .cloud-search-highlight {
   color: #d97706; /* 浅色模式下采用稍微深一些的琥珀金，以保障可读性 */
   text-shadow: 0 0 8px rgba(217, 119, 6, 0.15);
@@ -755,4 +837,186 @@ html.light .cloud-search-guide-subtext .cloud-login-link-inline-btn {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ================= 作者主页视图 (Author Profile View) ================= */
+.author-view-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.author-profile-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  text-align: center;
+}
+
+.author-back-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.author-back-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.author-profile-avatar-container {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  padding: 4px;
+  background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+  box-shadow: 0 8px 24px rgba(0, 210, 255, 0.2);
+}
+
+.author-profile-avatar, .author-profile-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  object-fit: cover;
+  border: 2px solid var(--bg-primary);
+}
+
+.author-profile-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.author-profile-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.author-profile-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.author-stat-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.author-stat-item .stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #00d2ff;
+}
+
+.author-stat-item .stat-label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.author-bio {
+  max-width: 600px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  background: rgba(255, 255, 255, 0.015);
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.author-bio p {
+  margin: 0 0 8px 0;
+}
+.author-bio p:last-child {
+  margin: 0;
+}
+
+.author-works-header {
+  padding: 24px 20px 12px;
+}
+
+.author-works-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  border-left: 3px solid #00d2ff;
+  padding-left: 10px;
+}
+
+/* 浅色模式下作者页 */
+html.light .author-back-btn {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text-secondary);
+}
+
+html.light .author-back-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+}
+
+html.light .author-profile-card {
+  background: rgba(0, 0, 0, 0.01);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+html.light .author-profile-avatar-container {
+  background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+  box-shadow: 0 8px 24px rgba(0, 180, 216, 0.2);
+}
+
+html.light .author-profile-avatar-fallback {
+  color: var(--text-primary);
+}
+
+html.light .author-profile-name {
+  color: var(--text-primary);
+}
+
+html.light .author-stat-item {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+html.light .author-stat-item .stat-value {
+  color: #0077b6;
+}
+
+html.light .author-bio {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  color: var(--text-secondary);
+}
+
+html.light .author-works-header h3 {
+  color: var(--text-primary);
+  border-left-color: #0077b6;
+}
 
