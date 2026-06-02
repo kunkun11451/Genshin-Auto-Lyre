@@ -38,7 +38,8 @@ function createWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      webviewTag: true
+      webviewTag: true,
+      devTools: isDev
     }
   })
 
@@ -492,7 +493,8 @@ function createWindow(): BrowserWindow {
         partition: 'persist:midishow', // 核心：共用同一 session，以将 Cookie 共享并持久化
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: false
+        sandbox: false,
+        devTools: isDev
       }
     })
 
