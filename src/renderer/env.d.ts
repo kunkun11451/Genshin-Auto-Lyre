@@ -38,6 +38,15 @@ interface ElectronAPI {
   downloadCloudMidi: (url: string) => Promise<{ success: boolean; error?: string }>
   openLoginWindow: () => void
   onLoginSuccess: (callback: () => void) => () => void
+
+  // 自动更新
+  getAppVersion: () => Promise<string>
+  checkUpdate: () => Promise<any>
+  startUpdate: (downloadUrl: string, assetName: string) => void
+  applyUpdate: (restartNow: boolean) => void
+  onUpdateProgress: (callback: (percent: number) => void) => () => void
+  onUpdateReady: (callback: () => void) => () => void
+  onUpdateError: (callback: (error: string) => void) => () => void
 }
 
 declare global {

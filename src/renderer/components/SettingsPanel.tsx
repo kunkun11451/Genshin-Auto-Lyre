@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X, Settings, Piano, Sliders } from 'lucide-react'
+import { X, Settings, Piano, Sliders, Info } from 'lucide-react'
+import { useAppStore } from '../store/useAppStore'
 import type { BlackKeyConfig, BlackKeyStrategy } from '../core/note-mapper'
 import './SettingsPanel.css'
 
@@ -55,6 +56,51 @@ export function SettingsPanel({
   const [shouldRender, setShouldRender] = useState(isOpen)
   const [isClosing, setIsClosing] = useState(false)
   const [recordingType, setRecordingType] = useState<'playback' | 'stop' | 'speedUp' | 'speedDown' | null>(null)
+
+  const appVersion = useAppStore(state => state.appVersion)
+  const updateStatus = useAppStore(state => state.updateStatus)
+  const updateInfo = useAppStore(state => state.updateInfo)
+  const updateProgress = useAppStore(state => state.updateProgress)
+  const updateErrorMsg = useAppStore(state => state.updateErrorMsg)
+  
+  const setUpdateStatus = useAppStore(state => state.setUpdateStatus)
+  const setUpdateInfo = useAppStore(state => state.setUpdateInfo)
+  const setUpdateErrorMsg = useAppStore(state => state.setUpdateErrorMsg)
+
+  const handleCheckUpdate = async () => {
+    setUpdateStatus('checking')
+    setUpdateErrorMsg('')
+    try {
+      const info = await window.electronAPI.checkUpdate()
+      if (info) {
+        setUpdateInfo(info)
+        setUpdateStatus('available')
+      } else {
+        setUpdateStatus('error')
+        setUpdateErrorMsg('当前已是最新版本')
+      }
+    } catch (err: any) {
+      setUpdateStatus('error')
+      setUpdateErrorMsg(err.message || '检查更新失败')
+    }
+  }
+
+  const handleStartUpdate = () => {
+    if (!updateInfo) return
+    setUpdateStatus('downloading')
+    window.electronAPI.startUpdate(updateInfo.downloadUrl, updateInfo.assetName)
+  }
+
+  const handleApplyUpdateNow = () => {
+    window.electronAPI.applyUpdate(true)
+  }
+
+  const handleApplyUpdateLater = () => {
+    // 标记为稍后更新，实际上主进程已经在 will-quit 钩子中准备好了
+    window.electronAPI.applyUpdate(false)
+    setUpdateStatus('idle') 
+    setUpdateInfo(null)
+  }
 
   // 快捷键录制事件监听
   useEffect(() => {
@@ -345,6 +391,86 @@ export function SettingsPanel({
             </div>
           </div>
           
+          {/* 关于与更新 */}
+          <div className="settings-group" style={{ marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <Info size={16} color="var(--text-dim)" />
+              <h3>关于</h3>
+            </div>
+            <div className="setting-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <label>当前版本</label>
+                <span style={{ color: 'var(--text-dim)' }}>v{appVersion || '...'}</span>
+              </div>
+              
+              <div style={{ display: 'flex', width: '100%', gap: '8px', marginTop: '4px', flexDirection: 'column' }}>
+                {updateStatus === 'idle' || updateStatus === 'error' ? (
+                  <>
+                    <button 
+                      onClick={handleCheckUpdate}
+                      style={{ padding: '6px 12px', background: 'var(--bg-highlight)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: '4px', cursor: 'pointer', width: '100%' }}
+                    >
+                      检查更新
+                    </button>
+                    {updateStatus === 'error' && updateErrorMsg && (
+                      <span style={{ fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>{updateErrorMsg}</span>
+                    )}
+                  </>
+                ) : updateStatus === 'checking' ? (
+                  <span style={{ fontSize: '13px', color: 'var(--text-dim)', textAlign: 'center', padding: '6px 0' }}>正在检查更新...</span>
+                ) : updateStatus === 'available' ? (
+                  <div style={{ background: 'var(--bg-highlight)', padding: '12px', borderRadius: '6px', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>发现新版本: v{updateInfo?.version}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-dim)', whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto' }}>
+                      {updateInfo?.releaseNotes}
+                    </div>
+                    <button 
+                      onClick={handleStartUpdate}
+                      style={{ padding: '6px 12px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: '4px', cursor: 'pointer', marginTop: '4px', fontSize: '13px' }}
+                    >
+                      立即下载更新
+                    </button>
+                  </div>
+                ) : updateStatus === 'downloading' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '6px', background: 'var(--bg-highlight)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-dim)' }}>
+                      <span>正在下载更新...</span>
+                      <span>{updateProgress}%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '4px', background: 'var(--glass-border)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ width: `${updateProgress}%`, height: '100%', background: 'var(--text-primary)', transition: 'width 0.2s' }}></div>
+                    </div>
+                  </div>
+                ) : updateStatus === 'ready' ? (
+                  <div style={{ background: 'var(--bg-highlight)', padding: '16px', borderRadius: '8px', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '16px' }}>🎉</span> 更新已准备就绪！
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center', lineHeight: '1.6' }}>
+                      新版本已成功下载。<br />
+                      您可以选择立即重启以应用新版本，<br />
+                      或者在您关闭软件后，它也会在后台自动完成升级替换。
+                    </div>
+                    <div style={{ display: 'flex', width: '100%', gap: '8px', marginTop: '6px' }}>
+                      <button 
+                        onClick={handleApplyUpdateNow}
+                        style={{ flex: 1, padding: '8px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                      >
+                        立即重启更新
+                      </button>
+                      <button 
+                        onClick={handleApplyUpdateLater}
+                        style={{ flex: 1, padding: '8px 12px', background: 'transparent', color: 'var(--text-dim)', border: '1px solid var(--glass-border)', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        稍后 (退出时更新)
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

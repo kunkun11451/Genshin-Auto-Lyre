@@ -97,5 +97,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = () => callback()
     ipcRenderer.on('midi:loginSuccess', handler)
     return () => ipcRenderer.off('midi:loginSuccess', handler)
+  },
+
+  // ===== 自动更新 =====
+  getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
+  checkUpdate: () => ipcRenderer.invoke('update:check'),
+  startUpdate: (downloadUrl: string, assetName: string) => ipcRenderer.send('update:start', downloadUrl, assetName),
+  applyUpdate: (restartNow: boolean) => ipcRenderer.send('update:apply', restartNow),
+  onUpdateProgress: (callback: (percent: number) => void) => {
+    const handler = (_e: any, p: number) => callback(p)
+    ipcRenderer.on('update:progress', handler)
+    return () => ipcRenderer.off('update:progress', handler)
+  },
+  onUpdateReady: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('update:ready', handler)
+    return () => ipcRenderer.off('update:ready', handler)
+  },
+  onUpdateError: (callback: (err: string) => void) => {
+    const handler = (_e: any, err: string) => callback(err)
+    ipcRenderer.on('update:error', handler)
+    return () => ipcRenderer.off('update:error', handler)
   }
 })

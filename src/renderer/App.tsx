@@ -59,7 +59,12 @@ function App(): React.JSX.Element {
     setStopShortcut,
     setSpeedUpShortcut,
     setSpeedDownShortcut,
-    setBgOpacity
+    setBgOpacity,
+    setAppVersion,
+    setUpdateStatus,
+    setUpdateInfo,
+    setUpdateProgress,
+    setUpdateErrorMsg
   } = useAppStore(useShallow((state) => ({
     midiFiles: state.midiFiles,
     currentFilePath: state.currentFilePath,
@@ -109,7 +114,12 @@ function App(): React.JSX.Element {
     setStopShortcut: state.setStopShortcut,
     setSpeedUpShortcut: state.setSpeedUpShortcut,
     setSpeedDownShortcut: state.setSpeedDownShortcut,
-    setBgOpacity: state.setBgOpacity
+    setBgOpacity: state.setBgOpacity,
+    setAppVersion: state.setAppVersion,
+    setUpdateStatus: state.setUpdateStatus,
+    setUpdateInfo: state.setUpdateInfo,
+    setUpdateProgress: state.setUpdateProgress,
+    setUpdateErrorMsg: state.setUpdateErrorMsg
   })))
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -288,6 +298,30 @@ function App(): React.JSX.Element {
       unsubscribeSpeedDown()
     }
   }, [])
+
+  // === 自动更新事件监听与版本获取 ===
+  useEffect(() => {
+    window.electronAPI.getAppVersion().then(v => setAppVersion(v))
+
+    const unsubProgress = window.electronAPI.onUpdateProgress((percent) => {
+      setUpdateProgress(percent)
+    })
+
+    const unsubReady = window.electronAPI.onUpdateReady(() => {
+      setUpdateStatus('ready')
+    })
+
+    const unsubError = window.electronAPI.onUpdateError((err) => {
+      setUpdateStatus('error')
+      setUpdateErrorMsg(err)
+    })
+
+    return () => {
+      unsubProgress()
+      unsubReady()
+      unsubError()
+    }
+  }, [setAppVersion, setUpdateProgress, setUpdateStatus, setUpdateErrorMsg])
 
   // === 音频预览设置同步 ===
   useEffect(() => {

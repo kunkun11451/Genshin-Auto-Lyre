@@ -2,10 +2,18 @@ import { app, BrowserWindow, ipcMain, shell, globalShortcut } from 'electron'
 import { join, dirname } from 'path'
 import { readFile, readdir, stat, mkdir, rename } from 'fs/promises'
 import { watch } from 'fs'
+import { execSync } from 'child_process'
 import { initKeyboardSimulator, simulateKeyDown, simulateKeyUp, simulateKeyBatch, destroyKeyboardSimulator } from './keyboard-simulator'
+import { checkUpdate, downloadUpdate, getUpdatePaths, applyUpdate, cleanUpdateTempFiles } from './updater'
 
 // 判断是否为开发模式
 const isDev = !app.isPackaged
+
+// 全局更新状态
+let isUpdateReady = false
+let updateAsset = ''
+let isUpdateApplied = false
+let isDownloadingUpdate = false
 
 // MIDI 根目录配置
 const midiDirPath = isDev 
@@ -75,6 +83,28 @@ function createWindow(): BrowserWindow {
 
   ipcMain.on('window:close', () => {
     mainWindow.close()
+  })
+
+  let isQuitting = false
+  mainWindow.on('close', (e) => {
+    if (isDownloadingUpdate && !isQuitting) {
+      e.preventDefault()
+      const { dialog } = require('electron')
+      const choice = dialog.showMessageBoxSync(mainWindow, {
+        type: 'question',
+        buttons: ['确定退出', '取消'],
+        defaultId: 1,
+        title: '下载未完成',
+        message: '更新包正在下载中，退出将中断更新。',
+        detail: '确定要退出软件吗？',
+        cancelId: 1
+      })
+
+      if (choice === 0) {
+        isQuitting = true
+        mainWindow.close()
+      }
+    }
   })
 
   ipcMain.handle('window:toggleAlwaysOnTop', () => {
@@ -476,6 +506,74 @@ function createWindow(): BrowserWindow {
     loginWin.loadURL('https://www.midishow.com/user/account/login')
   })
 
+  // ===== 自动更新 IPC =====
+  ipcMain.handle('app:getVersion', () => isDev ? 'dev' : app.getVersion())
+
+  ipcMain.handle('update:check', async () => {
+    return await checkUpdate()
+  })
+
+  ipcMain.on('update:start', async (_event, downloadUrl: string) => {
+    const { zipPath } = getUpdatePaths()
+    isDownloadingUpdate = true
+    
+    const tryDownload = async (url: string): Promise<void> => {
+      return await downloadUpdate(url, zipPath, (percent) => {
+        if (!mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('update:progress', percent)
+        }
+      })
+    }
+
+    try {
+      // 优先尝试通过指定代理站下载更新，提高国内下载成功率
+      const acceleratedUrl = `https://v4.gh-proxy.org/${downloadUrl}`
+      console.log('正在尝试通过首选代理站下载更新:', acceleratedUrl)
+      await tryDownload(acceleratedUrl)
+      
+      isUpdateReady = true
+      isDownloadingUpdate = false
+      updateAsset = downloadUrl
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update:ready')
+      }
+    } catch (err: any) {
+      console.warn('首选代理站下载失败，尝试降级从 GitHub 官方直连下载:', err)
+      try {
+        // 自动降级从原生的官方 GitHub 直连重新尝试下载
+        await tryDownload(downloadUrl)
+        
+        isUpdateReady = true
+        isDownloadingUpdate = false
+        updateAsset = downloadUrl
+        if (!mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('update:ready')
+        }
+      } catch (rawErr: any) {
+        isDownloadingUpdate = false
+        console.error('更新下载彻底失败 (代理源与 GitHub 直连均不可用):', rawErr)
+        if (!mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('update:error', rawErr.message || '下载更新包失败')
+        }
+      }
+    }
+  })
+
+  ipcMain.on('update:apply', (_event, restartNow?: boolean) => {
+    if (isUpdateReady && updateAsset && !isUpdateApplied) {
+      if (isDev) {
+        console.log('在开发模式下，更新已被拦截，防止破坏开发环境。')
+        return
+      }
+      isUpdateApplied = true
+      const { appDir, extractDir } = getUpdatePaths()
+      applyUpdate(appDir, extractDir, !!restartNow)
+      if (restartNow) {
+        app.quit()
+      }
+    }
+  })
+
   return mainWindow
 }
 
@@ -492,6 +590,9 @@ app.whenReady().then(async () => {
   } catch (err) {
     console.error('无法创建 midi 目录:', err)
   }
+
+  // 启动时静默清理残留的更新临时文件
+  cleanUpdateTempFiles()
 
   // 初始化键盘模拟器
   await initKeyboardSimulator()
@@ -536,6 +637,12 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   destroyKeyboardSimulator()
   globalShortcut.unregisterAll()
+
+  if (isUpdateReady && updateAsset && !isDev && !isUpdateApplied) {
+    isUpdateApplied = true
+    const { appDir, extractDir } = getUpdatePaths()
+    applyUpdate(appDir, extractDir)
+  }
 })
 
 // 递归扫描目录内 MIDI 文件

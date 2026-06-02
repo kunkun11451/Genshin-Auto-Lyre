@@ -65,6 +65,13 @@ interface AppState {
   speedUpShortcut: string
   speedDownShortcut: string
 
+  // ===== 自动更新 =====
+  appVersion: string
+  updateStatus: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error'
+  updateInfo: any | null
+  updateProgress: number
+  updateErrorMsg: string
+
   // ===== Actions =====
   setMidiFiles: (files: MidiFileInfo[]) => void
   selectFile: (path: string | null) => void
@@ -94,6 +101,11 @@ interface AppState {
   setStopShortcut: (shortcut: string) => void
   setSpeedUpShortcut: (shortcut: string) => void
   setSpeedDownShortcut: (shortcut: string) => void
+  setAppVersion: (v: string) => void
+  setUpdateStatus: (s: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error') => void
+  setUpdateInfo: (info: any) => void
+  setUpdateProgress: (p: number) => void
+  setUpdateErrorMsg: (msg: string) => void
 }
 
 // ============================================================
@@ -134,6 +146,12 @@ export const useAppStore = create<AppState>()(
       stopShortcut: 'End',
       speedUpShortcut: 'PageUp',
       speedDownShortcut: 'PageDown',
+
+      appVersion: '',
+      updateStatus: 'idle',
+      updateInfo: null,
+      updateProgress: 0,
+      updateErrorMsg: '',
 
       // ===== Actions =====
 
@@ -212,7 +230,13 @@ export const useAppStore = create<AppState>()(
       setSpeedDownShortcut: (shortcut) => {
         set({ speedDownShortcut: shortcut })
         window.electronAPI.registerSpeedDownShortcut(shortcut)
-      }
+      },
+
+      setAppVersion: (v) => set({ appVersion: v }),
+      setUpdateStatus: (s) => set({ updateStatus: s }),
+      setUpdateInfo: (info) => set({ updateInfo: info }),
+      setUpdateProgress: (p) => set({ updateProgress: p }),
+      setUpdateErrorMsg: (msg) => set({ updateErrorMsg: msg })
     }),
     {
       name: 'genshin-auto-lyre-storage',

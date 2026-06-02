@@ -31,12 +31,12 @@
     "appId": "com.tanqin.genshinautolyre",
     "productName": "Genshin Auto Lyre",
     "win": {
-      "target": ["portable"],
+      "target": [
+        "zip"
+      ],
       "requestedExecutionLevel": "requireAdministrator",
-      "icon": "build/icon.ico"
-    },
-    "portable": {
-      "artifactName": "${productName}-${version}-Portable.exe"
+      "icon": "build/icon.ico",
+      "artifactName": "Genshin-Auto-Lyre.${ext}"
     },
     "directories": {
       "output": "dist"
