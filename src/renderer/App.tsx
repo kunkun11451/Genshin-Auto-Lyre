@@ -76,19 +76,8 @@ function App(): React.JSX.Element {
     playbackState: state.playbackState,
     playbackSpeed: state.playbackSpeed,
     audioPreviewEnabled: state.audioPreviewEnabled,
-    blackKeyConfig: state.blackKeyConfig,
-    transpose: state.transpose,
-    startDelaySec: state.startDelaySec,
-    minInterval: state.minInterval,
-    minDuration: state.minDuration,
     instrumentMode: state.instrumentMode,
     isMiniMode: state.isMiniMode,
-    bgOpacity: state.bgOpacity,
-    theme: state.theme,
-    playbackShortcut: state.playbackShortcut,
-    stopShortcut: state.stopShortcut,
-    speedUpShortcut: state.speedUpShortcut,
-    speedDownShortcut: state.speedDownShortcut,
 
     setMidiFiles: state.setMidiFiles,
     selectFile: state.selectFile,
@@ -104,17 +93,8 @@ function App(): React.JSX.Element {
     removeActiveKey: state.removeActiveKey,
     clearActiveKeys: state.clearActiveKeys,
     setAudioPreviewEnabled: state.setAudioPreviewEnabled,
-    setBlackKeyConfig: state.setBlackKeyConfig,
-    setTranspose: state.setTranspose,
-    setStartDelaySec: state.setStartDelaySec,
     setInstrumentMode: state.setInstrumentMode,
     setMiniMode: state.setMiniMode,
-    setTheme: state.setTheme,
-    setPlaybackShortcut: state.setPlaybackShortcut,
-    setStopShortcut: state.setStopShortcut,
-    setSpeedUpShortcut: state.setSpeedUpShortcut,
-    setSpeedDownShortcut: state.setSpeedDownShortcut,
-    setBgOpacity: state.setBgOpacity,
     setAppVersion: state.setAppVersion,
     setUpdateStatus: state.setUpdateStatus,
     setUpdateInfo: state.setUpdateInfo,
@@ -122,14 +102,15 @@ function App(): React.JSX.Element {
     setUpdateErrorMsg: state.setUpdateErrorMsg
   })))
 
-  const [delayCountdown, setDelayCountdown] = useState<number | null>(null)
+  const [delayDurationSec, setDelayDurationSec] = useState<number | null>(null)
+  const delayTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // ===== 主题管理 =====
   useEffect(() => {
-    const applyTheme = () => {
+    // 1. 初始化
+    const applyTheme = (themeValue: string) => {
       const isLight = 
-        theme === 'light' || 
-        (theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches)
+        themeValue === 'light' || 
+        (themeValue === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches)
       
       if (isLight) {
         document.documentElement.classList.add('light')
@@ -138,16 +119,37 @@ function App(): React.JSX.Element {
       }
     }
 
-    applyTheme()
-    
-    // 监听系统主题变化
+    const state = useAppStore.getState()
+    applyTheme(state.theme)
+    document.documentElement.style.setProperty('--bg-opacity', state.bgOpacity.toString())
+    audioPreview.setEnabled(state.audioPreviewEnabled)
+
+    // 2. 监听变化
+    const unsub = useAppStore.subscribe((newState, prevState) => {
+      if (newState.theme !== prevState.theme) {
+        applyTheme(newState.theme)
+      }
+      if (newState.bgOpacity !== prevState.bgOpacity) {
+        document.documentElement.style.setProperty('--bg-opacity', newState.bgOpacity.toString())
+      }
+      if (newState.audioPreviewEnabled !== prevState.audioPreviewEnabled) {
+        audioPreview.setEnabled(newState.audioPreviewEnabled)
+      }
+    })
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: light)')
     const listener = () => {
-      if (theme === 'system') applyTheme()
+      if (useAppStore.getState().theme === 'system') {
+        applyTheme('system')
+      }
     }
     mediaQuery.addEventListener('change', listener)
-    return () => mediaQuery.removeEventListener('change', listener)
-  }, [theme])
+    
+    return () => {
+      unsub()
+      mediaQuery.removeEventListener('change', listener)
+    }
+  }, [])
 
   // ===== IPC 监听 =====
   const engineRef = useRef<PlaybackEngine | null>(null)
@@ -220,7 +222,7 @@ function App(): React.JSX.Element {
   }, [setLatestDownloadedMidi, selectFile, setMidiFiles])
 
   // === 注册并监听全局快捷键 ===
-  const handlePlayPauseRef = useRef<() => void>(() => {})
+  const handlePlayPauseRef = useRef<(isShortcut?: boolean) => void>(() => {})
   const handleStopRef = useRef<() => void>(() => {})
   
   useEffect(() => {
@@ -269,7 +271,7 @@ function App(): React.JSX.Element {
     }
 
     const unsubscribePlay = window.electronAPI.onPlaybackShortcutTriggered(() => {
-      handlePlayPauseRef.current()
+      handlePlayPauseRef.current(true)
     })
 
     const unsubscribeStop = window.electronAPI.onStopShortcutTriggered(() => {
@@ -322,20 +324,10 @@ function App(): React.JSX.Element {
     }
   }, [setAppVersion, setUpdateProgress, setUpdateStatus, setUpdateErrorMsg])
 
-  // === 音频预览设置同步 ===
-  useEffect(() => {
-    audioPreview.setEnabled(audioPreviewEnabled)
-  }, [audioPreviewEnabled])
-
   // === 引擎速度同步 ===
   useEffect(() => {
     engineRef.current?.setSpeed(playbackSpeed)
   }, [playbackSpeed])
-
-  // === 全局背景透明度同步 ===
-  useEffect(() => {
-    document.documentElement.style.setProperty('--bg-opacity', bgOpacity.toString())
-  }, [bgOpacity])
 
   // === 初始化加载及目录监听 ===
   const fetchMidiFiles = async () => {
@@ -393,49 +385,77 @@ function App(): React.JSX.Element {
 
   // === 映射参数改变或新文件解析后，重新映射 ===
   useEffect(() => {
-    if (!parsedMidi) {
-      setMappedNotes([])
+    const handleMapNotes = (state: ReturnType<typeof useAppStore.getState>) => {
+      if (!state.parsedMidi) {
+        if (state.mappedNotes.length > 0) {
+          state.setMappedNotes([])
+        }
+        return
+      }
+      const newMappedNotes = mapNotes(state.parsedMidi.allNotes, {
+        blackKeyConfig: state.blackKeyConfig,
+        transpose: state.transpose,
+        minInterval: state.minInterval,
+        minDuration: state.minDuration,
+        instrumentMode: state.instrumentMode
+      })
+      state.setMappedNotes(newMappedNotes)
+      engineRef.current?.load(newMappedNotes, state.parsedMidi.totalDurationMs)
+    }
+
+    // Initial check
+    handleMapNotes(useAppStore.getState())
+
+    // Subscribe to mapping-related changes
+    const unsub = useAppStore.subscribe((state, prevState) => {
+      if (
+        state.parsedMidi !== prevState.parsedMidi ||
+        state.blackKeyConfig !== prevState.blackKeyConfig ||
+        state.transpose !== prevState.transpose ||
+        state.minInterval !== prevState.minInterval ||
+        state.minDuration !== prevState.minDuration ||
+        state.instrumentMode !== prevState.instrumentMode
+      ) {
+        handleMapNotes(state)
+      }
+    })
+
+    return unsub
+  }, [])
+
+  // === 控制处理函数 ===
+  const handlePlayPause = (isShortcut: boolean | any = false) => {
+    if (!engineRef.current || mappedNotes.length === 0) return
+
+    // 如果正在倒计时，点击播放按钮可以取消倒计时
+    if (delayTimerRef.current) {
+      clearTimeout(delayTimerRef.current)
+      delayTimerRef.current = null
+      setDelayDurationSec(null)
       return
     }
 
-    const newMappedNotes = mapNotes(parsedMidi.allNotes, {
-      blackKeyConfig,
-      transpose,
-      minInterval,
-      minDuration,
-      instrumentMode
-    })
-    
-    setMappedNotes(newMappedNotes)
-    
-    // 加载到引擎
-    engineRef.current?.load(newMappedNotes, parsedMidi.totalDurationMs)
-
-  }, [parsedMidi, blackKeyConfig, transpose, minInterval, minDuration, instrumentMode])
-
-  // === 控制处理函数 ===
-  const handlePlayPause = () => {
-    if (!engineRef.current || mappedNotes.length === 0) return
-
     if (playbackState === 'playing') {
       engineRef.current.pause()
-      setDelayCountdown(null)
     } else {
       // 启动倒计时
-      if (startDelaySec > 0 && engineRef.current?.getCurrentTime() === 0) {
-        let count = startDelaySec
-        setDelayCountdown(count)
+      const currentDelaySec = useAppStore.getState().startDelaySec
+      const previewEnabled = useAppStore.getState().audioPreviewEnabled
+      const isRealShortcut = isShortcut === true
+
+      // 只有在非快捷键触发、且未开启音频预览（试听）时，才应用启动延迟
+      if (
+        currentDelaySec > 0 && 
+        !isRealShortcut && 
+        !previewEnabled
+      ) {
+        setDelayDurationSec(currentDelaySec)
         
-        const timer = setInterval(() => {
-          count--
-          if (count <= 0) {
-            clearInterval(timer)
-            setDelayCountdown(null)
-            engineRef.current?.play()
-          } else {
-            setDelayCountdown(count)
-          }
-        }, 1000)
+        delayTimerRef.current = setTimeout(() => {
+          delayTimerRef.current = null
+          setDelayDurationSec(null)
+          engineRef.current?.play()
+        }, currentDelaySec * 1000)
       } else {
         engineRef.current.play()
       }
@@ -448,8 +468,12 @@ function App(): React.JSX.Element {
   }, [handlePlayPause])
 
   const handleStop = () => {
+    if (delayTimerRef.current) {
+      clearTimeout(delayTimerRef.current)
+      delayTimerRef.current = null
+      setDelayDurationSec(null)
+    }
     engineRef.current?.stop()
-    setDelayCountdown(null)
   }
 
   useEffect(() => {
@@ -519,7 +543,8 @@ function App(): React.JSX.Element {
             </div>
           </div>
           <PlaybackControls 
-            isPlaying={playbackState === 'playing'}
+            isPlaying={playbackState === 'playing' || delayDurationSec !== null}
+            delayDurationSec={delayDurationSec}
             totalDurationMs={parsedMidi?.totalDurationMs || 0}
             speed={playbackSpeed}
             onPlayPause={handlePlayPause}
@@ -598,22 +623,11 @@ function App(): React.JSX.Element {
               />
             </div>
 
-            {/* 倒计时遮罩 */}
-            {delayCountdown !== null && (
-              <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50,
-                fontSize: '120px', color: '#e94560', fontWeight: 'bold',
-                textShadow: '0 0 20px rgba(233,69,96,0.8)'
-              }}>
-                {delayCountdown}
-              </div>
-            )}
           </div>
 
           <PlaybackControls 
-            isPlaying={playbackState === 'playing'}
+            isPlaying={playbackState === 'playing' || delayDurationSec !== null}
+            delayDurationSec={delayDurationSec}
             totalDurationMs={parsedMidi?.totalDurationMs || 0}
             speed={playbackSpeed}
             onPlayPause={handlePlayPause}
@@ -633,28 +647,7 @@ function App(): React.JSX.Element {
           />
         </div>
 
-      <SettingsPanel 
-        instrumentMode={instrumentMode}
-        onInstrumentModeChange={setInstrumentMode}
-        blackKeyConfig={blackKeyConfig}
-        onBlackKeyConfigChange={setBlackKeyConfig}
-        transpose={transpose}
-        onTransposeChange={setTranspose}
-        startDelaySec={startDelaySec}
-        onStartDelaySecChange={setStartDelaySec}
-        audioPreviewEnabled={audioPreviewEnabled}
-        onAudioPreviewEnabledChange={setAudioPreviewEnabled}
-        theme={theme}
-        onThemeChange={setTheme}
-        playbackShortcut={playbackShortcut}
-        onPlaybackShortcutChange={setPlaybackShortcut}
-        stopShortcut={stopShortcut}
-        onStopShortcutChange={setStopShortcut}
-        speedUpShortcut={speedUpShortcut}
-        onSpeedUpShortcutChange={setSpeedUpShortcut}
-        speedDownShortcut={speedDownShortcut}
-        onSpeedDownShortcutChange={setSpeedDownShortcut}
-      />
+      <SettingsPanel />
     </div>
   )
 }

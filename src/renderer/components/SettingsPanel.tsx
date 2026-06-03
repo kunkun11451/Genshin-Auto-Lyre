@@ -64,54 +64,31 @@ const parseMarkdown = (text: string) => {
   })
 }
 
-interface SettingsPanelProps {
-  instrumentMode: 'standard' | 'chord' | 'horn'
-  onInstrumentModeChange: (mode: 'standard' | 'chord' | 'horn') => void
-  blackKeyConfig: BlackKeyConfig
-  onBlackKeyConfigChange: (config: BlackKeyConfig) => void
-  transpose: number
-  onTransposeChange: (val: number) => void
-  startDelaySec: number
-  onStartDelaySecChange: (val: number) => void
-  audioPreviewEnabled: boolean
-  onAudioPreviewEnabledChange: (val: boolean) => void
-  theme: 'system' | 'light' | 'dark'
-  onThemeChange: (val: 'system' | 'light' | 'dark') => void
-  playbackShortcut: string
-  onPlaybackShortcutChange: (val: string) => void
-  stopShortcut: string
-  onStopShortcutChange: (val: string) => void
-  speedUpShortcut: string
-  onSpeedUpShortcutChange: (val: string) => void
-  speedDownShortcut: string
-  onSpeedDownShortcutChange: (val: string) => void
-}
-
-export function SettingsPanel({
-  instrumentMode,
-  onInstrumentModeChange,
-  blackKeyConfig,
-  onBlackKeyConfigChange,
-  transpose,
-  onTransposeChange,
-  startDelaySec,
-  onStartDelaySecChange,
-  audioPreviewEnabled,
-  onAudioPreviewEnabledChange,
-  theme,
-  onThemeChange,
-  playbackShortcut,
-  onPlaybackShortcutChange,
-  stopShortcut,
-  onStopShortcutChange,
-  speedUpShortcut,
-  onSpeedUpShortcutChange,
-  speedDownShortcut,
-  onSpeedDownShortcutChange
-}: SettingsPanelProps): React.JSX.Element | null {
+export function SettingsPanel(): React.JSX.Element | null {
   const isOpen = useAppStore(state => state.isSettingsOpen)
   const setIsSettingsOpen = useAppStore(state => state.setIsSettingsOpen)
   const onClose = () => setIsSettingsOpen(false)
+
+  const instrumentMode = useAppStore(state => state.instrumentMode)
+  const onInstrumentModeChange = useAppStore(state => state.setInstrumentMode)
+  const blackKeyConfig = useAppStore(state => state.blackKeyConfig)
+  const onBlackKeyConfigChange = useAppStore(state => state.setBlackKeyConfig)
+  const transpose = useAppStore(state => state.transpose)
+  const onTransposeChange = useAppStore(state => state.setTranspose)
+  const startDelaySec = useAppStore(state => state.startDelaySec)
+  const onStartDelaySecChange = useAppStore(state => state.setStartDelaySec)
+  const audioPreviewEnabled = useAppStore(state => state.audioPreviewEnabled)
+  const onAudioPreviewEnabledChange = useAppStore(state => state.setAudioPreviewEnabled)
+  const theme = useAppStore(state => state.theme)
+  const onThemeChange = useAppStore(state => state.setTheme)
+  const playbackShortcut = useAppStore(state => state.playbackShortcut)
+  const onPlaybackShortcutChange = useAppStore(state => state.setPlaybackShortcut)
+  const stopShortcut = useAppStore(state => state.stopShortcut)
+  const onStopShortcutChange = useAppStore(state => state.setStopShortcut)
+  const speedUpShortcut = useAppStore(state => state.speedUpShortcut)
+  const onSpeedUpShortcutChange = useAppStore(state => state.setSpeedUpShortcut)
+  const speedDownShortcut = useAppStore(state => state.speedDownShortcut)
+  const onSpeedDownShortcutChange = useAppStore(state => state.setSpeedDownShortcut)
 
   const [shouldRender, setShouldRender] = useState(isOpen)
   const [isClosing, setIsClosing] = useState(false)

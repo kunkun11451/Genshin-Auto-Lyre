@@ -15,6 +15,7 @@ interface PlaybackControlsProps {
   onSpeedChange: (speed: number) => void
   onOpenSettings: () => void
   isMiniMode?: boolean
+  delayDurationSec?: number | null
 }
 
 function formatTime(ms: number): string {
@@ -35,7 +36,8 @@ export function PlaybackControls({
   onSeek,
   onSpeedChange,
   onOpenSettings,
-  isMiniMode = false
+  isMiniMode = false,
+  delayDurationSec = null
 }: PlaybackControlsProps): React.JSX.Element {
   
   const currentTimeMs = useAppStore(state => state.currentTimeMs)
@@ -116,6 +118,17 @@ export function PlaybackControls({
             <SkipBack size={18} />
           </button>
           <button className="btn-icon play-btn" onClick={onPlayPause} title={isPlaying ? '暂停' : '播放'}>
+            {delayDurationSec !== null && (
+              <svg className="play-delay-circle" viewBox="0 0 44 44">
+                <circle 
+                  cx="22" 
+                  cy="22" 
+                  r="20" 
+                  pathLength="100" 
+                  style={{ animationDuration: `${Math.max(0.1, delayDurationSec - 0.25)}s` }} 
+                />
+              </svg>
+            )}
             {isPlaying ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: '4px' }} />}
           </button>
           <button className="btn-icon" onClick={onNext} title="下一首">

@@ -8,6 +8,7 @@ import * as Tone from 'tone'
 
 class AudioPreview {
   private synth: Tone.Sampler | null = null
+  private reverb: Tone.Reverb | null = null
   private enabled: boolean = false
   private initialized: boolean = false
   private isLoading: boolean = false
@@ -22,8 +23,14 @@ class AudioPreview {
     try {
       await Tone.start()
       
+      // 创建混响效果器
+      this.reverb = new Tone.Reverb({
+        decay: 2.0,   // 混响衰减时间
+        preDelay: 0.01,
+        wet: 0.3      // 湿混比
+      }).toDestination()
+
       // 使用真实大钢琴采样 (Salamander Grand Piano)
-      // 为了加快加载速度，我们只提供少量的采样基准音，Tone.js 会自动对其他音高进行插值移调
       this.synth = new Tone.Sampler({
         urls: {
           C3: "C3.mp3",
@@ -37,17 +44,20 @@ class AudioPreview {
           C5: "C5.mp3",
           "D#5": "Ds5.mp3",
           "F#5": "Fs5.mp3",
-          A5: "A5.mp3"
+          A5: "A5.mp3",
+          C6: "C6.mp3",
+          "D#6": "Ds6.mp3",
+          "F#6": "Fs6.mp3",
+          A6: "A6.mp3"
         },
-        // 使用 GitHub Pages 作为免费 CDN，实际如果网络差可以换国内 CDN
-        baseUrl: "https://tonejs.github.io/audio/salamander/",
-        release: 1,
+        baseUrl: "./audio/",
+        release: 2.2, // 模拟琴弦余音和延音效果
         onload: () => {
           this.initialized = true
           this.isLoading = false
           console.log('真实钢琴采样加载完成！')
         }
-      }).toDestination()
+      }).connect(this.reverb)
       
       this.synth.volume.value = -5 // 调整整体音量
     } catch (e) {
@@ -110,6 +120,10 @@ class AudioPreview {
     if (this.synth) {
       this.synth.dispose()
       this.synth = null
+    }
+    if (this.reverb) {
+      this.reverb.dispose()
+      this.reverb = null
     }
     this.initialized = false
   }

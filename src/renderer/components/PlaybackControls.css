@@ -104,6 +104,35 @@
   font-size: 20px;
   background: var(--hover-bg);
   border: var(--glass-border);
+  position: relative;
+}
+
+.play-delay-circle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.play-delay-circle circle {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  opacity: 0.6;
+  filter: drop-shadow(0 0 4px var(--text-primary));
+  animation: play-delay-fill linear forwards;
+}
+
+@keyframes play-delay-fill {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 .btn-icon.play-btn:hover {
