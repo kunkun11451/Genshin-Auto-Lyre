@@ -79,6 +79,8 @@ export function SettingsPanel(): React.JSX.Element | null {
   const onStartDelaySecChange = useAppStore(state => state.setStartDelaySec)
   const audioPreviewEnabled = useAppStore(state => state.audioPreviewEnabled)
   const onAudioPreviewEnabledChange = useAppStore(state => state.setAudioPreviewEnabled)
+  const isMultiplayerEnabled = useAppStore(state => state.isMultiplayerEnabled)
+  const onMultiplayerEnabledChange = useAppStore(state => state.setIsMultiplayerEnabled)
   const theme = useAppStore(state => state.theme)
   const onThemeChange = useAppStore(state => state.setTheme)
   const playbackShortcut = useAppStore(state => state.playbackShortcut)
@@ -368,13 +370,33 @@ export function SettingsPanel(): React.JSX.Element | null {
                 min="0" max="10" 
               />
             </div>
-            <div className="setting-item">
-              <label>midi试听(打开后将关闭键盘操作)</label>
-              <label className="toggle-switch">
+            <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
+              <label>midi试听(打开后将关闭键盘操作) {isMultiplayerEnabled && '(多人演奏中已强制禁用)'}</label>
+              <label className="toggle-switch" style={isMultiplayerEnabled ? { pointerEvents: 'none' } : {}}>
                 <input 
                   type="checkbox" 
                   checked={audioPreviewEnabled}
                   onChange={(e) => onAudioPreviewEnabledChange(e.target.checked)}
+                  disabled={isMultiplayerEnabled}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          {/* 联机合奏 */}
+          <div className="settings-group" style={{ marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <Sliders size={16} color="var(--text-dim)" />
+              <h3>多人联机合奏</h3>
+            </div>
+            <div className="setting-item">
+              <label>开启多人演奏模式</label>
+              <label className="toggle-switch">
+                <input 
+                  type="checkbox" 
+                  checked={isMultiplayerEnabled}
+                  onChange={(e) => onMultiplayerEnabledChange(e.target.checked)}
                 />
                 <span className="toggle-slider"></span>
               </label>

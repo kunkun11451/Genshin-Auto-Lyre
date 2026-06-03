@@ -2,6 +2,7 @@
   "name": "genshin-auto-lyre",
   "version": "1.0.0",
   "description": "Genshin Auto Lyre - 原神自动弹琴工具",
+  "license": "MIT",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -12,6 +13,7 @@
   "dependencies": {
     "@tonejs/midi": "^2.0.28",
     "lucide-react": "^1.17.0",
+    "peerjs": "^1.5.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tone": "^15.1.22",

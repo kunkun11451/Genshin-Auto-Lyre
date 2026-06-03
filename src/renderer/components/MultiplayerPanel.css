@@ -1,0 +1,214 @@
+.multiplayer-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 24px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.mp-header {
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 16px;
+}
+
+.mp-header h2 {
+  margin: 0;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mp-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+}
+
+/* 登录/大厅区域 */
+.mp-lobby {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 400px;
+  margin: 0 auto;
+  margin-top: 40px;
+}
+
+.mp-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mp-card h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.mp-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.mp-input:focus {
+  border-color: var(--text-dim);
+}
+
+.mp-btn {
+  background: var(--bg-highlight);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.mp-btn:hover {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.mp-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mp-btn.primary {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.mp-btn.primary:hover {
+  opacity: 0.9;
+}
+
+/* 房间内视图 */
+.mp-room {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mp-room-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-secondary);
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+}
+
+.mp-room-id {
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+  user-select: all;
+}
+
+/* 轨道列表 */
+.mp-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mp-track-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mp-track-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mp-track-name {
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.mp-track-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.mp-track-assign {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mp-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+}
+
+/* 客机等待区 */
+.mp-waiting {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-dim);
+}
+
+.mp-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.mp-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffaa00;
+}
+
+.mp-status-dot.connected {
+  background: #00ff66;
+}
+
+.mp-status-dot.error {
+  background: #ff3333;
+}

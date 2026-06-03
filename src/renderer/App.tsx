@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { TitleBar, PianoKeyboard, TrackCanvas, FileList, PlaybackControls, SettingsPanel, MidiShowBrowser } from './components'
+import { TitleBar, PianoKeyboard, TrackCanvas, FileList, PlaybackControls, SettingsPanel, MidiShowBrowser, MultiplayerPanel } from './components'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from './store/useAppStore'
 import { parseMidiBuffer } from './core/midi-parser'
 import { mapNotes } from './core/note-mapper'
 import { PlaybackEngine } from './core/playback-engine'
 import { audioPreview } from './core/audio-preview'
+import { networkManager } from './core/network-manager'
 import startImg from '../../resources/start.png'
 
 function App(): React.JSX.Element {
@@ -28,6 +29,8 @@ function App(): React.JSX.Element {
     minDuration,
     instrumentMode,
     isMiniMode,
+    isMultiplayerEnabled,
+    clientTotalDurationMs,
     theme,
     playbackShortcut,
     stopShortcut,
@@ -76,6 +79,8 @@ function App(): React.JSX.Element {
     playbackState: state.playbackState,
     playbackSpeed: state.playbackSpeed,
     audioPreviewEnabled: state.audioPreviewEnabled,
+    isMultiplayerEnabled: state.isMultiplayerEnabled,
+    clientTotalDurationMs: state.clientTotalDurationMs,
     instrumentMode: state.instrumentMode,
     isMiniMode: state.isMiniMode,
 
@@ -200,8 +205,63 @@ function App(): React.JSX.Element {
       }
     })
 
+    // ===== 多人联机事件监听 =====
+    networkManager.events.onTrackDataReceived = (notes, totalDurationMs) => {
+      // 客机收到轨道数据，保存并加载到本地引擎
+      useAppStore.getState().setClientTrackData(notes)
+      if (totalDurationMs !== undefined) {
+        useAppStore.getState().setClientTotalDurationMs(totalDurationMs)
+      }
+      const totalDuration = totalDurationMs || useAppStore.getState().parsedMidi?.totalDurationMs || 300000 
+      engineRef.current?.load(notes, totalDuration)
+    }
+
+    networkManager.events.onPlayCommand = (targetTime) => {
+      // 客机收到播放指令
+      const syncedTime = networkManager.getSyncedTime()
+      const delayMs = targetTime - syncedTime
+      
+      if (delayMs > 0) {
+        setDelayDurationSec(delayMs / 1000)
+        delayTimerRef.current = setTimeout(() => {
+          delayTimerRef.current = null
+          setDelayDurationSec(null)
+          engineRef.current?.play()
+        }, delayMs)
+      } else {
+        engineRef.current?.play()
+      }
+    }
+
+    networkManager.events.onPauseCommand = () => {
+      if (delayTimerRef.current) {
+        clearTimeout(delayTimerRef.current)
+        delayTimerRef.current = null
+        setDelayDurationSec(null)
+      }
+      engineRef.current?.pause()
+    }
+
+    networkManager.events.onStopCommand = () => {
+      if (delayTimerRef.current) {
+        clearTimeout(delayTimerRef.current)
+        delayTimerRef.current = null
+        setDelayDurationSec(null)
+      }
+      engineRef.current?.stop()
+    }
+    
+    networkManager.events.onSeekCommand = (timeMs) => {
+      engineRef.current?.seek(timeMs)
+    }
+
     return () => {
       engineRef.current?.dispose()
+      networkManager.events.onTrackDataReceived = undefined
+      networkManager.events.onPlayCommand = undefined
+      networkManager.events.onPauseCommand = undefined
+      networkManager.events.onStopCommand = undefined
+      networkManager.events.onSeekCommand = undefined
     }
   }, [])
 
@@ -437,14 +497,78 @@ function App(): React.JSX.Element {
 
     if (playbackState === 'playing') {
       engineRef.current.pause()
+      
+      const state = useAppStore.getState()
+      if (state.isMultiplayerEnabled && networkManager.currentRole === 'host') {
+        networkManager.broadcastPause()
+      }
     } else {
       // 启动倒计时
-      const currentDelaySec = useAppStore.getState().startDelaySec
-      const previewEnabled = useAppStore.getState().audioPreviewEnabled
+      const state = useAppStore.getState()
+      const currentDelaySec = state.startDelaySec
+      const previewEnabled = state.audioPreviewEnabled
       const isRealShortcut = isShortcut === true
+      const isMultiplayer = state.isMultiplayerEnabled && networkManager.currentRole === 'host'
 
-      // 只有在非快捷键触发、且未开启音频预览（试听）时，才应用启动延迟
-      if (
+      if (isMultiplayer) {
+        // 主机模式下点击播放
+        const assignments = state.multiplayerAssignments
+        const playerToTracks = new Map<string, number[]>()
+        
+        parsedMidi?.tracks.forEach((_, idx) => {
+          const pid = assignments[idx] || 'me'
+          if (pid !== 'none') {
+            if (!playerToTracks.has(pid)) playerToTracks.set(pid, [])
+            playerToTracks.get(pid)!.push(idx)
+          }
+        })
+
+        // 主机自己的音符
+        const myNotes: any[] = []
+
+        for (const [pid, trackIndices] of playerToTracks.entries()) {
+          const combinedParsedNotes: any[] = []
+          for (const idx of trackIndices) {
+            if (parsedMidi && parsedMidi.tracks[idx]) {
+              combinedParsedNotes.push(...parsedMidi.tracks[idx])
+            }
+          }
+          
+          const mapped = mapNotes(combinedParsedNotes, {
+            blackKeyConfig: state.blackKeyConfig,
+            transpose: state.transpose,
+            minInterval: state.minInterval,
+            minDuration: state.minDuration,
+            instrumentMode: state.instrumentMode
+          })
+          
+          if (pid === 'me') {
+            myNotes.push(...mapped)
+          } else {
+            networkManager.sendTrackDataToPlayer(pid, mapped, parsedMidi?.totalDurationMs)
+          }
+        }
+
+        // 主机自己加载音符
+        engineRef.current.load(myNotes, parsedMidi?.totalDurationMs || 0)
+
+        // 广播播放指令 (强制 3 秒同步延迟)
+        const targetTime = networkManager.broadcastPlay(3000)
+        
+        // 主机本地等待
+        const delayMs = targetTime - networkManager.getSyncedTime()
+        if (delayMs > 0) {
+          setDelayDurationSec(delayMs / 1000)
+          delayTimerRef.current = setTimeout(() => {
+            delayTimerRef.current = null
+            setDelayDurationSec(null)
+            engineRef.current?.play()
+          }, delayMs)
+        } else {
+          engineRef.current.play()
+        }
+        
+      } else if (
         currentDelaySec > 0 && 
         !isRealShortcut && 
         !previewEnabled
@@ -474,6 +598,12 @@ function App(): React.JSX.Element {
       setDelayDurationSec(null)
     }
     engineRef.current?.stop()
+    
+    // 如果是主机，广播停止
+    const state = useAppStore.getState()
+    if (state.isMultiplayerEnabled && networkManager.currentRole === 'host') {
+      networkManager.broadcastStop()
+    }
   }
 
   useEffect(() => {
@@ -482,6 +612,11 @@ function App(): React.JSX.Element {
 
   const handleSeek = (timeMs: number) => {
     engineRef.current?.seek(timeMs)
+    
+    const state = useAppStore.getState()
+    if (state.isMultiplayerEnabled && networkManager.currentRole === 'host') {
+      networkManager.broadcastSeek(timeMs)
+    }
   }
 
   const handleRename = async (oldPath: string, newName: string) => {
@@ -566,7 +701,7 @@ function App(): React.JSX.Element {
 
       <div key="normal" className="mode-container" style={{ display: isMiniMode ? 'none' : 'flex' }}>
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
-            {!midiShowUrl && currentFilePath && <PianoKeyboard />}
+            {!midiShowUrl && currentFilePath && !isMultiplayerEnabled && <PianoKeyboard />}
             
             <div style={{ display: midiShowUrl ? 'flex' : 'none', flex: 1, overflow: 'hidden', position: 'relative', width: '100%', height: '100%' }}>
               <MidiShowBrowser 
@@ -579,7 +714,9 @@ function App(): React.JSX.Element {
             </div>
             
             {!midiShowUrl && (
-              currentFilePath ? (
+              isMultiplayerEnabled ? (
+                <MultiplayerPanel />
+              ) : currentFilePath ? (
                 <TrackCanvas 
                   originalNotes={parsedMidi?.allNotes || []}
                   mappedNotes={mappedNotes}
@@ -628,7 +765,11 @@ function App(): React.JSX.Element {
           <PlaybackControls 
             isPlaying={playbackState === 'playing' || delayDurationSec !== null}
             delayDurationSec={delayDurationSec}
-            totalDurationMs={parsedMidi?.totalDurationMs || 0}
+            totalDurationMs={
+              isMultiplayerEnabled && networkManager.currentRole === 'client'
+                ? clientTotalDurationMs
+                : (parsedMidi?.totalDurationMs || 0)
+            }
             speed={playbackSpeed}
             onPlayPause={handlePlayPause}
             onStop={handleStop}

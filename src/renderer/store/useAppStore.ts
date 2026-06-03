@@ -56,6 +56,18 @@ interface AppState {
   // ===== 音频预览 =====
   audioPreviewEnabled: boolean
 
+  // ===== 联机合奏 =====
+  isMultiplayerEnabled: boolean
+  setIsMultiplayerEnabled: (enabled: boolean) => void
+  multiplayerAssignments: Record<number, string>
+  setMultiplayerAssignments: (assignments: Record<number, string>) => void
+  clientTrackData: MappedNote[] | null
+  setClientTrackData: (notes: MappedNote[] | null) => void
+  clientTotalDurationMs: number
+  setClientTotalDurationMs: (durationMs: number) => void
+  playerName: string
+  setPlayerName: (name: string) => void
+
   // ===== 设置 =====
   instrumentMode: 'standard' | 'chord' | 'horn'
   blackKeyConfig: BlackKeyConfig
@@ -141,6 +153,12 @@ export const useAppStore = create<AppState>()(
 
       audioPreviewEnabled: false,
 
+      isMultiplayerEnabled: false,
+      multiplayerAssignments: {},
+      clientTrackData: null,
+      clientTotalDurationMs: 0,
+      playerName: '',
+
       instrumentMode: 'standard',
       blackKeyConfig: { ...DEFAULT_BLACK_KEY_CONFIG },
       transpose: 0,
@@ -211,6 +229,17 @@ export const useAppStore = create<AppState>()(
 
       setAudioPreviewEnabled: (enabled) => set({ audioPreviewEnabled: enabled }),
 
+      setIsMultiplayerEnabled: (enabled) => {
+        set({ isMultiplayerEnabled: enabled })
+        if (enabled) {
+          set({ audioPreviewEnabled: false })
+        }
+      },
+      setMultiplayerAssignments: (assignments) => set({ multiplayerAssignments: assignments }),
+      setClientTrackData: (notes) => set({ clientTrackData: notes }),
+      setClientTotalDurationMs: (durationMs) => set({ clientTotalDurationMs: durationMs }),
+      setPlayerName: (name) => set({ playerName: name }),
+
       setInstrumentMode: (mode) => set({ instrumentMode: mode }),
 
       setBlackKeyConfig: (config) => set({ blackKeyConfig: config }),
@@ -262,9 +291,12 @@ export const useAppStore = create<AppState>()(
         playbackShortcut: state.playbackShortcut,
         stopShortcut: state.stopShortcut,
         speedUpShortcut: state.speedUpShortcut,
-        speedDownShortcut: state.speedDownShortcut
+        speedDownShortcut: state.speedDownShortcut,
+        isMultiplayerEnabled: state.isMultiplayerEnabled,
+        playerName: state.playerName
       })
     }
   )
 )
 
+  

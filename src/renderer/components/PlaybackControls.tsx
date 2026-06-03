@@ -47,6 +47,7 @@ export function PlaybackControls({
   const setInstrumentMode = useAppStore(state => state.setInstrumentMode)
   const audioPreviewEnabled = useAppStore(state => state.audioPreviewEnabled)
   const setAudioPreviewEnabled = useAppStore(state => state.setAudioPreviewEnabled)
+  const isMultiplayerEnabled = useAppStore(state => state.isMultiplayerEnabled)
 
   const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false)
   const [shouldRenderPopup, setShouldRenderPopup] = useState(false)
@@ -189,16 +190,17 @@ export function PlaybackControls({
                   </select>
                 </div>
                 
-                <div className="quick-setting-item">
+                <div className="quick-setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
                   <div className="quick-setting-label">
                     <Volume2 size={14} />
-                    <span>midi试听</span>
+                    <span>midi试听 {isMultiplayerEnabled && ''}</span>
                   </div>
-                  <label className="toggle-switch small">
+                  <label className="toggle-switch small" style={isMultiplayerEnabled ? { pointerEvents: 'none' } : {}}>
                     <input 
                       type="checkbox" 
                       checked={audioPreviewEnabled}
                       onChange={(e) => setAudioPreviewEnabled(e.target.checked)}
+                      disabled={isMultiplayerEnabled}
                     />
                     <span className="toggle-slider"></span>
                   </label>

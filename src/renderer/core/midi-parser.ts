@@ -27,6 +27,12 @@ export interface ParsedNote {
   channel: number
 }
 
+/** 音轨元数据 */
+export interface TrackMeta {
+  name: string
+  instrument: string
+}
+
 /** 解析后的 MIDI 文件 */
 export interface ParsedMidi {
   /** 文件名 */
@@ -39,11 +45,34 @@ export interface ParsedMidi {
   tracks: ParsedNote[][]
   /** 所有音符合并并按时间排序 */
   allNotes: ParsedNote[]
+  /** 每一轨的元数据信息（乐器、名称等） */
+  trackMeta: TrackMeta[]
 }
 
 // ============================================================
 // 解析函数
 // ============================================================
+
+/** 清理可能乱码的字符串 */
+function sanitizeString(str: string): string {
+  if (!str) return ''
+  // 包含 UTF-8 替换字符
+  if (str.includes('\uFFFD')) return ''
+  
+  let latinCount = 0
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i)
+    if (code >= 0x80 && code <= 0xFF) {
+      latinCount++
+    }
+  }
+  // 超过 30% 奇怪的西欧字符大概率是 GBK 强转 UTF-8/Latin-1 失败的乱码
+  if (latinCount > 0 && latinCount >= str.length * 0.3) {
+    return ''
+  }
+  
+  return str.replace(/[\x00-\x1F\x7F]/g, '').trim()
+}
 
 /**
  * 解析 MIDI 文件 ArrayBuffer
@@ -65,6 +94,7 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string = ''): Par
   // 逐音轨解析
   const tracks: ParsedNote[][] = []
   const allNotes: ParsedNote[] = []
+  const trackMeta: TrackMeta[] = []
 
   midi.tracks.forEach((track, trackIndex) => {
     const trackNotes: ParsedNote[] = []
@@ -88,6 +118,10 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string = ''): Par
 
     if (trackNotes.length > 0) {
       tracks.push(trackNotes)
+      trackMeta.push({
+        name: sanitizeString(track.name),
+        instrument: sanitizeString(track.instrument?.name)
+      })
     }
   })
 
@@ -99,6 +133,7 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string = ''): Par
     bpm,
     totalDurationMs,
     tracks,
-    allNotes
+    allNotes,
+    trackMeta
   }
 }
