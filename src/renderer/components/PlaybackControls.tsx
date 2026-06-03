@@ -1,4 +1,5 @@
-import { Play, Pause, Square, SkipBack, SkipForward, Settings, ChevronUp, ChevronDown } from 'lucide-react'
+import { Play, Pause, Square, SkipBack, SkipForward, Settings, ChevronUp, ChevronDown, Piano, Volume2, MoreHorizontal } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import './PlaybackControls.css'
 
@@ -39,6 +40,45 @@ export function PlaybackControls({
   
   const currentTimeMs = useAppStore(state => state.currentTimeMs)
   const progressPercent = totalDurationMs > 0 ? (currentTimeMs / totalDurationMs) * 100 : 0
+  
+  const instrumentMode = useAppStore(state => state.instrumentMode)
+  const setInstrumentMode = useAppStore(state => state.setInstrumentMode)
+  const audioPreviewEnabled = useAppStore(state => state.audioPreviewEnabled)
+  const setAudioPreviewEnabled = useAppStore(state => state.setAudioPreviewEnabled)
+
+  const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false)
+  const [shouldRenderPopup, setShouldRenderPopup] = useState(false)
+  const [isPopupClosing, setIsPopupClosing] = useState(false)
+
+  useEffect(() => {
+    if (isQuickSettingsOpen) {
+      setShouldRenderPopup(true)
+      setIsPopupClosing(false)
+    } else if (shouldRenderPopup) {
+      setIsPopupClosing(true)
+      const timer = setTimeout(() => {
+        setShouldRenderPopup(false)
+        setIsPopupClosing(false)
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+  }, [isQuickSettingsOpen, shouldRenderPopup])
+
+  const popupRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+        setIsQuickSettingsOpen(false)
+      }
+    }
+    if (isQuickSettingsOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isQuickSettingsOpen])
 
   const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -106,9 +146,66 @@ export function PlaybackControls({
               </div>
             </div>
           )}
-          <button className="btn-icon" onClick={onOpenSettings} title="设置" style={isMiniMode ? {} : { marginLeft: '16px' }}>
-            <Settings size={18} />
-          </button>
+          <div style={{ position: 'relative' }} ref={popupRef}>
+            <button 
+              className={`btn-icon ${isQuickSettingsOpen ? 'active' : ''}`} 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsQuickSettingsOpen(!isQuickSettingsOpen);
+              }} 
+              title="快速设置" 
+              style={isMiniMode ? {} : { marginLeft: '16px' }}
+            >
+              <Settings size={18} />
+            </button>
+            
+            {shouldRenderPopup && (
+              <div className={`quick-settings-popup ${isPopupClosing ? 'closing' : ''}`}>
+                <div className="quick-setting-item">
+                  <div className="quick-setting-label">
+                    <Piano size={14} />
+                    <span>选择乐器</span>
+                  </div>
+                  <select 
+                    value={instrumentMode} 
+                    onChange={(e) => setInstrumentMode(e.target.value as any)}
+                  >
+                    <option value="standard">普通琴</option>
+                    <option value="chord">和弦琴</option>
+                    <option value="horn">晚风圆号</option>
+                  </select>
+                </div>
+                
+                <div className="quick-setting-item">
+                  <div className="quick-setting-label">
+                    <Volume2 size={14} />
+                    <span>midi试听</span>
+                  </div>
+                  <label className="toggle-switch small">
+                    <input 
+                      type="checkbox" 
+                      checked={audioPreviewEnabled}
+                      onChange={(e) => setAudioPreviewEnabled(e.target.checked)}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div className="quick-setting-divider"></div>
+                
+                <button 
+                  className="quick-setting-more-btn"
+                  onClick={() => {
+                    setIsQuickSettingsOpen(false)
+                    onOpenSettings()
+                  }}
+                >
+                  <MoreHorizontal size={14} />
+                  <span>更多设置...</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

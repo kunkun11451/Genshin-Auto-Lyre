@@ -48,6 +48,8 @@ interface AppState {
   // ===== 界面模式 =====
   isMiniMode: boolean
   setMiniMode: (isMini: boolean) => void
+  isSettingsOpen: boolean
+  setIsSettingsOpen: (isOpen: boolean) => void
   bgOpacity: number
   setBgOpacity: (opacity: number) => void
 
@@ -55,7 +57,7 @@ interface AppState {
   audioPreviewEnabled: boolean
 
   // ===== 设置 =====
-  instrumentMode: 'standard' | 'chord'
+  instrumentMode: 'standard' | 'chord' | 'horn'
   blackKeyConfig: BlackKeyConfig
   transpose: number
   startDelaySec: number
@@ -94,7 +96,7 @@ interface AppState {
 
   setAudioPreviewEnabled: (enabled: boolean) => void
 
-  setInstrumentMode: (mode: 'standard' | 'chord') => void
+  setInstrumentMode: (mode: 'standard' | 'chord' | 'horn') => void
   setBlackKeyConfig: (config: BlackKeyConfig) => void
   setTranspose: (transpose: number) => void
   setStartDelaySec: (sec: number) => void
@@ -134,6 +136,7 @@ export const useAppStore = create<AppState>()(
       activeKeys: new Set(),
 
       isMiniMode: false,
+      isSettingsOpen: false,
       bgOpacity: 1.0,
 
       audioPreviewEnabled: false,
@@ -201,6 +204,8 @@ export const useAppStore = create<AppState>()(
           set({ isMiniMode: isMini })
         }, 50)
       },
+
+      setIsSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen }),
 
       setBgOpacity: (opacity) => set({ bgOpacity: Math.max(0.1, Math.min(1.0, opacity)) }),
 

@@ -65,10 +65,8 @@ const parseMarkdown = (text: string) => {
 }
 
 interface SettingsPanelProps {
-  isOpen: boolean
-  onClose: () => void
-  instrumentMode: 'standard' | 'chord'
-  onInstrumentModeChange: (mode: 'standard' | 'chord') => void
+  instrumentMode: 'standard' | 'chord' | 'horn'
+  onInstrumentModeChange: (mode: 'standard' | 'chord' | 'horn') => void
   blackKeyConfig: BlackKeyConfig
   onBlackKeyConfigChange: (config: BlackKeyConfig) => void
   transpose: number
@@ -90,8 +88,6 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({
-  isOpen,
-  onClose,
   instrumentMode,
   onInstrumentModeChange,
   blackKeyConfig,
@@ -113,6 +109,10 @@ export function SettingsPanel({
   speedDownShortcut,
   onSpeedDownShortcutChange
 }: SettingsPanelProps): React.JSX.Element | null {
+  const isOpen = useAppStore(state => state.isSettingsOpen)
+  const setIsSettingsOpen = useAppStore(state => state.setIsSettingsOpen)
+  const onClose = () => setIsSettingsOpen(false)
+
   const [shouldRender, setShouldRender] = useState(isOpen)
   const [isClosing, setIsClosing] = useState(false)
   const [recordingType, setRecordingType] = useState<'playback' | 'stop' | 'speedUp' | 'speedDown' | null>(null)
@@ -299,10 +299,11 @@ export function SettingsPanel({
               <label>选择乐器</label>
               <select 
                 value={instrumentMode} 
-                onChange={(e) => onInstrumentModeChange(e.target.value as 'standard' | 'chord')}
+                onChange={(e) => onInstrumentModeChange(e.target.value as 'standard' | 'chord' | 'horn')}
               >
                 <option value="standard">普通琴</option>
                 <option value="chord">和弦琴(低可用性)</option>
+                <option value="horn">晚风圆号</option>
               </select>
             </div>
             

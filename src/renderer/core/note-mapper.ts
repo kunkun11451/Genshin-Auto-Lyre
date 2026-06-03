@@ -43,7 +43,7 @@ export interface MapperOptions {
   /** 最小音符持续时间（毫秒） */
   minDuration: number
   /** 乐器模式 */
-  instrumentMode?: 'standard' | 'chord'
+  instrumentMode?: 'standard' | 'chord' | 'horn'
 }
 
 /** 映射后的音符（演奏指令） */
@@ -96,15 +96,14 @@ const GAME_NOTES_SET = new Set(GAME_NOTES)
 // ============================================================
 
 /**
- * 将音符折叠到可演奏范围 (C3=48 ~ 默认 B5=83)
+ * 将音符折叠到可演奏范围 (默认 C3=48 ~ B5=83)
  * 低于范围则升八度，高于范围则降八度
  */
-function foldToRange(midiNote: number, maxRange: number = 83): number {
-  const MIN = 48 // C3
-  while (midiNote < MIN) midiNote += 12
+function foldToRange(midiNote: number, minRange: number = 48, maxRange: number = 83): number {
+  while (midiNote < minRange) midiNote += 12
   while (midiNote > maxRange) midiNote -= 12
   // 防止极端情况导致无限循环后仍越界
-  if (midiNote < MIN || midiNote > maxRange) return -1
+  if (midiNote < minRange || midiNote > maxRange) return -1
   return midiNote
 }
 
@@ -270,9 +269,10 @@ export function mapNotes(
   }
 
   for (const note of notesToMap) {
-    // 第二步：音域折叠 (和弦模式下限制最高到 B4(71))
+    // 第二步：音域折叠 (和弦模式下限制最高到 B4(71)，圆号模式限制最低到 C4(60))
     const maxRange = options.instrumentMode === 'chord' ? 71 : 83
-    const foldedNote = foldToRange(note.note, maxRange)
+    const minRange = options.instrumentMode === 'horn' ? 60 : 48
+    const foldedNote = foldToRange(note.note, minRange, maxRange)
     if (foldedNote === -1) continue // 折叠失败，跳过
 
     // 第三步：分八度黑键处理
@@ -314,7 +314,7 @@ export function mapNotes(
   const deduped = deduplicateNotes(result, options.minInterval)
 
   // 第五步：强制分离同键连续音符，防止游戏吞键
-  enforceMinimumGap(deduped, 40) // 确保同一个键的前后抬起与按下至少间隔 40ms
+  enforceMinimumGap(deduped, 50) // 确保同一个键的前后抬起与按下至少间隔 50ms
 
   return deduped
 }

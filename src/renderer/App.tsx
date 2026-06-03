@@ -122,7 +122,6 @@ function App(): React.JSX.Element {
     setUpdateErrorMsg: state.setUpdateErrorMsg
   })))
 
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [delayCountdown, setDelayCountdown] = useState<number | null>(null)
 
   // ===== 主题管理 =====
@@ -535,7 +534,7 @@ function App(): React.JSX.Element {
             }}
             onSeek={handleSeek}
             onSpeedChange={setPlaybackSpeed}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenSettings={() => useAppStore.getState().setIsSettingsOpen(true)}
             isMiniMode={true}
           />
         </div>
@@ -629,14 +628,12 @@ function App(): React.JSX.Element {
             }}
             onSeek={handleSeek}
             onSpeedChange={setPlaybackSpeed}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenSettings={() => useAppStore.getState().setIsSettingsOpen(true)}
             isMiniMode={false}
           />
         </div>
 
       <SettingsPanel 
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
         instrumentMode={instrumentMode}
         onInstrumentModeChange={setInstrumentMode}
         blackKeyConfig={blackKeyConfig}
