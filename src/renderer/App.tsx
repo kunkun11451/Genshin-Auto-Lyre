@@ -30,6 +30,7 @@ function App(): React.JSX.Element {
     instrumentMode,
     isMiniMode,
     isMultiplayerEnabled,
+    multiplayerRole,
     clientTotalDurationMs,
     theme,
     playbackShortcut,
@@ -80,9 +81,21 @@ function App(): React.JSX.Element {
     playbackSpeed: state.playbackSpeed,
     audioPreviewEnabled: state.audioPreviewEnabled,
     isMultiplayerEnabled: state.isMultiplayerEnabled,
+    multiplayerRole: state.multiplayerRole,
     clientTotalDurationMs: state.clientTotalDurationMs,
     instrumentMode: state.instrumentMode,
     isMiniMode: state.isMiniMode,
+    blackKeyConfig: state.blackKeyConfig,
+    transpose: state.transpose,
+    startDelaySec: state.startDelaySec,
+    minInterval: state.minInterval,
+    minDuration: state.minDuration,
+    theme: state.theme,
+    playbackShortcut: state.playbackShortcut,
+    stopShortcut: state.stopShortcut,
+    speedUpShortcut: state.speedUpShortcut,
+    speedDownShortcut: state.speedDownShortcut,
+    bgOpacity: state.bgOpacity,
 
     setMidiFiles: state.setMidiFiles,
     selectFile: state.selectFile,
@@ -104,7 +117,16 @@ function App(): React.JSX.Element {
     setUpdateStatus: state.setUpdateStatus,
     setUpdateInfo: state.setUpdateInfo,
     setUpdateProgress: state.setUpdateProgress,
-    setUpdateErrorMsg: state.setUpdateErrorMsg
+    setUpdateErrorMsg: state.setUpdateErrorMsg,
+    setBlackKeyConfig: state.setBlackKeyConfig,
+    setTranspose: state.setTranspose,
+    setStartDelaySec: state.setStartDelaySec,
+    setTheme: state.setTheme,
+    setPlaybackShortcut: state.setPlaybackShortcut,
+    setStopShortcut: state.setStopShortcut,
+    setSpeedUpShortcut: state.setSpeedUpShortcut,
+    setSpeedDownShortcut: state.setSpeedDownShortcut,
+    setBgOpacity: state.setBgOpacity
   })))
 
   const [delayDurationSec, setDelayDurationSec] = useState<number | null>(null)
@@ -127,6 +149,7 @@ function App(): React.JSX.Element {
     const state = useAppStore.getState()
     applyTheme(state.theme)
     document.documentElement.style.setProperty('--bg-opacity', state.bgOpacity.toString())
+    audioPreview.setInstrument(state.audioPreviewInstrument)
     audioPreview.setEnabled(state.audioPreviewEnabled)
 
     // 2. 监听变化
@@ -139,6 +162,9 @@ function App(): React.JSX.Element {
       }
       if (newState.audioPreviewEnabled !== prevState.audioPreviewEnabled) {
         audioPreview.setEnabled(newState.audioPreviewEnabled)
+      }
+      if (newState.audioPreviewInstrument !== prevState.audioPreviewInstrument) {
+        audioPreview.setInstrument(newState.audioPreviewInstrument)
       }
     })
 
@@ -205,15 +231,32 @@ function App(): React.JSX.Element {
       }
     })
 
-    // ===== 多人联机事件监听 =====
-    networkManager.events.onTrackDataReceived = (notes, totalDurationMs) => {
+    networkManager.events.onTrackDataReceived = (notes, totalDurationMs, instrumentMode, previewInstrument) => {
       // 客机收到轨道数据，保存并加载到本地引擎
       useAppStore.getState().setClientTrackData(notes)
       if (totalDurationMs !== undefined) {
         useAppStore.getState().setClientTotalDurationMs(totalDurationMs)
       }
+      if (instrumentMode) {
+        useAppStore.getState().setInstrumentMode(instrumentMode)
+      }
+      if (previewInstrument) {
+        useAppStore.getState().setAudioPreviewInstrument(previewInstrument)
+      }
       const totalDuration = totalDurationMs || useAppStore.getState().parsedMidi?.totalDurationMs || 300000 
       engineRef.current?.load(notes, totalDuration)
+    }
+
+    networkManager.events.onOverviewDataReceived = (combinedTracks, previewInstruments, totalDurationMs, hostName) => {
+      const store = useAppStore.getState()
+      store.setMultiplayerCombinedTracks(combinedTracks)
+      Object.entries(previewInstruments).forEach(([pid, inst]) => {
+        store.setMultiplayerPreviewInstrument(pid, inst)
+      })
+      store.setClientTotalDurationMs(totalDurationMs)
+      if (hostName) {
+        store.setMultiplayerHostName(hostName)
+      }
     }
 
     networkManager.events.onPlayCommand = (targetTime) => {
@@ -258,6 +301,7 @@ function App(): React.JSX.Element {
     return () => {
       engineRef.current?.dispose()
       networkManager.events.onTrackDataReceived = undefined
+      networkManager.events.onOverviewDataReceived = undefined
       networkManager.events.onPlayCommand = undefined
       networkManager.events.onPauseCommand = undefined
       networkManager.events.onStopCommand = undefined
@@ -445,7 +489,7 @@ function App(): React.JSX.Element {
 
   // === 映射参数改变或新文件解析后，重新映射 ===
   useEffect(() => {
-    const handleMapNotes = (state: ReturnType<typeof useAppStore.getState>) => {
+    const handleMapNotes = (state: ReturnType<typeof useAppStore.getState>, isHot: boolean = false) => {
       if (!state.parsedMidi) {
         if (state.mappedNotes.length > 0) {
           state.setMappedNotes([])
@@ -460,7 +504,11 @@ function App(): React.JSX.Element {
         instrumentMode: state.instrumentMode
       })
       state.setMappedNotes(newMappedNotes)
-      engineRef.current?.load(newMappedNotes, state.parsedMidi.totalDurationMs)
+      if (isHot) {
+        engineRef.current?.hotLoad(newMappedNotes, state.parsedMidi.totalDurationMs)
+      } else {
+        engineRef.current?.load(newMappedNotes, state.parsedMidi.totalDurationMs)
+      }
     }
 
     // Initial check
@@ -476,7 +524,10 @@ function App(): React.JSX.Element {
         state.minDuration !== prevState.minDuration ||
         state.instrumentMode !== prevState.instrumentMode
       ) {
-        handleMapNotes(state)
+        const isMidiChanged = state.parsedMidi !== prevState.parsedMidi
+        const isPlayingOrPaused = state.playbackState === 'playing' || state.playbackState === 'paused'
+        const isHot = !isMidiChanged && isPlayingOrPaused
+        handleMapNotes(state, isHot)
       }
     })
 
@@ -511,7 +562,16 @@ function App(): React.JSX.Element {
       const isMultiplayer = state.isMultiplayerEnabled && networkManager.currentRole === 'host'
 
       if (isMultiplayer) {
-        // 主机模式下点击播放
+        // 主机模式下点击播放前检查客机准备状态
+        const connectedPlayers = networkManager.connectedPlayers
+        const unreadyPlayers = connectedPlayers.filter(p => p.ready === false || p.ready === undefined)
+        
+        if (unreadyPlayers.length > 0) {
+          const names = unreadyPlayers.map(p => p.name).join(', ')
+          alert(`无法开始合奏，以下客机尚未准备就绪：\n${names}`)
+          return
+        }
+
         const assignments = state.multiplayerAssignments
         const playerToTracks = new Map<string, number[]>()
         
@@ -605,6 +665,32 @@ function App(): React.JSX.Element {
       networkManager.broadcastStop()
     }
   }
+
+  const isFirstRender = useRef(true)
+
+  // ==== 监听联机模式变化以重置进度 ====
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    // 切换多人模式开关时，强制停止引擎并清空进度
+    handleStopRef.current?.()
+    useAppStore.getState().setCurrentTime(0)
+    useAppStore.getState().setPlaybackState('idle')
+
+    // 关闭多人合奏模式时 断开连接
+    if (!isMultiplayerEnabled) {
+      networkManager.disconnect()
+      useAppStore.getState().setMultiplayerAssignments({})
+      useAppStore.getState().setClientTrackData([])
+      useAppStore.getState().setClientTotalDurationMs(0)
+      useAppStore.setState({
+        multiplayerInstrumentModes: {},
+        multiplayerPreviewInstruments: {}
+      })
+    }
+  }, [isMultiplayerEnabled])
 
   useEffect(() => {
     handleStopRef.current = handleStop
@@ -734,12 +820,13 @@ function App(): React.JSX.Element {
               )
             )}
             
-            <div className="layout-sidebar" style={{ width: '280px', flexShrink: 0, borderLeft: 'var(--glass-border)' }}>
-              <FileList 
-                files={midiFiles}
-                currentFilePath={currentFilePath}
-                latestDownloadedMidi={latestDownloadedMidi}
-                searchQuery={searchQuery}
+            {!(isMultiplayerEnabled && multiplayerRole === 'client') && (
+              <div className="layout-sidebar" style={{ width: '280px', flexShrink: 0, borderLeft: 'var(--glass-border)' }}>
+                <FileList 
+                  files={midiFiles}
+                  currentFilePath={currentFilePath}
+                  latestDownloadedMidi={latestDownloadedMidi}
+                  searchQuery={searchQuery}
                 onSelect={(path) => {
                   selectFile(path)
                   setMidiShowUrl(null)
@@ -759,6 +846,7 @@ function App(): React.JSX.Element {
                 }}
               />
             </div>
+            )}
 
           </div>
 

@@ -12,6 +12,17 @@ import type { MappedNote, MapperOptions, BlackKeyConfig } from '../core/note-map
 import { DEFAULT_BLACK_KEY_CONFIG, DEFAULT_MAPPER_OPTIONS } from '../core/note-mapper'
 import type { PlaybackState } from '../core/playback-engine'
 
+export const INSTRUMENT_TO_MODE: Record<string, 'standard' | 'chord' | 'horn'> = {
+  "Lyre": "standard",
+  "Vintage-Lyre": "standard",
+  "Zither": "standard",
+  "Horn": "horn",
+  "Ukulele": "chord",
+  "LingeringEuphonia": "chord",
+  "LeapingSpiritPiano": "standard",
+  "HarmonicKey": "standard"
+}
+
 // ============================================================
 // 类型定义
 // ============================================================
@@ -55,18 +66,30 @@ interface AppState {
 
   // ===== 音频预览 =====
   audioPreviewEnabled: boolean
+  audioPreviewInstrument: string
+  setAudioPreviewInstrument: (inst: string) => void
 
   // ===== 联机合奏 =====
   isMultiplayerEnabled: boolean
   setIsMultiplayerEnabled: (enabled: boolean) => void
   multiplayerAssignments: Record<number, string>
   setMultiplayerAssignments: (assignments: Record<number, string>) => void
+  multiplayerInstrumentModes: Record<string, 'standard' | 'chord' | 'horn'>
+  setMultiplayerInstrumentMode: (playerId: string, mode: 'standard' | 'chord' | 'horn') => void
+  multiplayerPreviewInstruments: Record<string, string>
+  setMultiplayerPreviewInstrument: (playerId: string, inst: string) => void
   clientTrackData: MappedNote[] | null
   setClientTrackData: (notes: MappedNote[] | null) => void
   clientTotalDurationMs: number
   setClientTotalDurationMs: (durationMs: number) => void
   playerName: string
   setPlayerName: (name: string) => void
+  multiplayerCombinedTracks: Record<string, MappedNote[]>
+  setMultiplayerCombinedTracks: (tracks: Record<string, MappedNote[]>) => void
+  multiplayerRole: 'none' | 'host' | 'client'
+  setMultiplayerRole: (role: 'none' | 'host' | 'client') => void
+  multiplayerHostName: string
+  setMultiplayerHostName: (name: string) => void
 
   // ===== 设置 =====
   instrumentMode: 'standard' | 'chord' | 'horn'
@@ -152,12 +175,18 @@ export const useAppStore = create<AppState>()(
       bgOpacity: 1.0,
 
       audioPreviewEnabled: false,
+      audioPreviewInstrument: 'Lyre',
 
       isMultiplayerEnabled: false,
       multiplayerAssignments: {},
+      multiplayerInstrumentModes: {},
+      multiplayerPreviewInstruments: {},
       clientTrackData: null,
       clientTotalDurationMs: 0,
       playerName: '',
+      multiplayerCombinedTracks: {},
+      multiplayerRole: 'none',
+      multiplayerHostName: '',
 
       instrumentMode: 'standard',
       blackKeyConfig: { ...DEFAULT_BLACK_KEY_CONFIG },
@@ -228,6 +257,10 @@ export const useAppStore = create<AppState>()(
       setBgOpacity: (opacity) => set({ bgOpacity: Math.max(0.1, Math.min(1.0, opacity)) }),
 
       setAudioPreviewEnabled: (enabled) => set({ audioPreviewEnabled: enabled }),
+      setAudioPreviewInstrument: (inst) => set({ 
+        audioPreviewInstrument: inst,
+        instrumentMode: INSTRUMENT_TO_MODE[inst] || 'standard'
+      }),
 
       setIsMultiplayerEnabled: (enabled) => {
         set({ isMultiplayerEnabled: enabled })
@@ -236,9 +269,31 @@ export const useAppStore = create<AppState>()(
         }
       },
       setMultiplayerAssignments: (assignments) => set({ multiplayerAssignments: assignments }),
+      setMultiplayerInstrumentMode: (playerId, mode) => set((state) => ({
+        multiplayerInstrumentModes: {
+          ...state.multiplayerInstrumentModes,
+          [playerId]: mode
+        }
+      })),
+      setMultiplayerPreviewInstrument: (playerId, inst) => set((state) => {
+        const mode = INSTRUMENT_TO_MODE[inst] || 'standard'
+        return {
+          multiplayerPreviewInstruments: {
+            ...state.multiplayerPreviewInstruments,
+            [playerId]: inst
+          },
+          multiplayerInstrumentModes: {
+            ...state.multiplayerInstrumentModes,
+            [playerId]: mode
+          }
+        }
+      }),
       setClientTrackData: (notes) => set({ clientTrackData: notes }),
       setClientTotalDurationMs: (durationMs) => set({ clientTotalDurationMs: durationMs }),
       setPlayerName: (name) => set({ playerName: name }),
+      setMultiplayerCombinedTracks: (tracks) => set({ multiplayerCombinedTracks: tracks }),
+      setMultiplayerRole: (role) => set({ multiplayerRole: role }),
+      setMultiplayerHostName: (name) => set({ multiplayerHostName: name }),
 
       setInstrumentMode: (mode) => set({ instrumentMode: mode }),
 
@@ -282,6 +337,7 @@ export const useAppStore = create<AppState>()(
       // 只持久化需要保存的配置，不保存文件列表（改由专属文件夹实时同步读取）
       partialize: (state) => ({
         audioPreviewEnabled: state.audioPreviewEnabled,
+        audioPreviewInstrument: state.audioPreviewInstrument,
         instrumentMode: state.instrumentMode,
         blackKeyConfig: state.blackKeyConfig,
         transpose: state.transpose,
@@ -293,7 +349,9 @@ export const useAppStore = create<AppState>()(
         speedUpShortcut: state.speedUpShortcut,
         speedDownShortcut: state.speedDownShortcut,
         isMultiplayerEnabled: state.isMultiplayerEnabled,
-        playerName: state.playerName
+        playerName: state.playerName,
+        multiplayerInstrumentModes: state.multiplayerInstrumentModes,
+        multiplayerPreviewInstruments: state.multiplayerPreviewInstruments
       })
     }
   )

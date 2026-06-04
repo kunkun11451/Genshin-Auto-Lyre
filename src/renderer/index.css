@@ -141,6 +141,14 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
 /* 提取全局的毛玻璃类，供后续可能复用 */
 .glass-panel {
   background: var(--bg-surface);
@@ -191,7 +199,3 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 浅色模式适配 */
-html.light .empty-splash-logo {
-  /* 同样在浅色模式下剥除阴影 */
-}

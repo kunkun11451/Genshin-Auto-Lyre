@@ -261,12 +261,12 @@ export function mapNotes(
   let notesToMap = notes.map(n => ({ ...n, note: n.note + options.transpose }))
   let chordNotes: MappedNote[] = []
 
-  // 第 1.5 步：如果是和弦模式，尝试合成和弦
-  if (options.instrumentMode === 'chord') {
-    const synthResult = synthesizeChords(notesToMap)
-    chordNotes = synthResult.chords
-    notesToMap = synthResult.remainingNotes
-  }
+  // 第 1.5 步：如果是和弦模式，不再尝试合成和弦（和弦琴当作Q-U按键不存在）
+  // if (options.instrumentMode === 'chord') {
+  //   const synthResult = synthesizeChords(notesToMap)
+  //   chordNotes = synthResult.chords
+  //   notesToMap = synthResult.remainingNotes
+  // }
 
   for (const note of notesToMap) {
     // 第二步：音域折叠 (和弦模式下限制最高到 B4(71)，圆号模式限制最低到 C4(60))

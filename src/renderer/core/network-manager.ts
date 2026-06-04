@@ -14,6 +14,7 @@ export interface NetworkPlayer {
   name: string
   conn: DataConnection
   ping: number
+  ready?: boolean
 }
 
 // 消息类型
@@ -24,7 +25,9 @@ export type NetworkMessage =
   | { type: 'PAUSE' }
   | { type: 'STOP' }
   | { type: 'SEEK'; timeMs: number }
-  | { type: 'TRACK_DATA'; notes: MappedNote[]; totalDurationMs?: number }
+  | { type: 'TRACK_DATA'; notes: MappedNote[]; totalDurationMs?: number; instrumentMode?: 'standard' | 'chord' | 'horn'; previewInstrument?: string }
+  | { type: 'READY_STATE'; ready: boolean }
+  | { type: 'OVERVIEW_DATA'; playerCombinedTracks: Record<string, MappedNote[]>; multiplayerPreviewInstruments: Record<string, string>; totalDurationMs: number; hostName?: string }
 
 // 事件监听接口
 export interface NetworkEvents {
@@ -37,7 +40,18 @@ export interface NetworkEvents {
   onPauseCommand?: () => void
   onStopCommand?: () => void
   onSeekCommand?: (timeMs: number) => void
-  onTrackDataReceived?: (notes: MappedNote[], totalDurationMs?: number) => void
+  onTrackDataReceived?: (
+    notes: MappedNote[], 
+    totalDurationMs?: number, 
+    instrumentMode?: 'standard' | 'chord' | 'horn', 
+    previewInstrument?: string
+  ) => void
+  onOverviewDataReceived?: (
+    combinedTracks: Record<string, MappedNote[]>, 
+    previewInstruments: Record<string, string>, 
+    totalDurationMs: number,
+    hostName?: string
+  ) => void
 }
 
 export class NetworkManager {
@@ -64,6 +78,9 @@ export class NetworkManager {
 
   /** 获取自己的 Peer ID */
   get myId(): string {
+    if (this.role === 'host' && !this.peer) {
+      return 'DEV-ROOM'
+    }
     return this.peer?.id || ''
   }
 
@@ -75,6 +92,22 @@ export class NetworkManager {
   /** 获取连接的玩家列表 (仅 Host) */
   get connectedPlayers(): NetworkPlayer[] {
     return Array.from(this.players.values())
+  }
+
+  /** 创建本地单机开发调试房间 */
+  createDevRoom() {
+    this.cleanup()
+    this.setRole('host')
+    
+    // 模拟 3 个就绪玩家
+    const mockPlayers: NetworkPlayer[] = [
+      { id: 'mock_1', name: '模拟玩家 1', conn: { send: () => {} } as any, ping: 12, ready: true },
+      { id: 'mock_2', name: '模拟玩家 2', conn: { send: () => {} } as any, ping: 8, ready: true },
+      { id: 'mock_3', name: '模拟玩家 3', conn: { send: () => {} } as any, ping: 15, ready: true },
+    ]
+    
+    mockPlayers.forEach(p => this.players.set(p.id, p))
+    this.notifyPlayersChange()
   }
 
   /** 创建房间 (成为 Host) */
@@ -160,11 +193,17 @@ export class NetworkManager {
   // ==========================================
 
   /** 给某个玩家发送轨道数据 */
-  sendTrackDataToPlayer(playerId: string, notes: MappedNote[], totalDurationMs?: number) {
+  sendTrackDataToPlayer(
+    playerId: string, 
+    notes: MappedNote[], 
+    totalDurationMs?: number,
+    instrumentMode?: 'standard' | 'chord' | 'horn',
+    previewInstrument?: string
+  ) {
     if (this.role !== 'host') return
     const player = this.players.get(playerId)
     if (player && player.conn.open) {
-      player.conn.send({ type: 'TRACK_DATA', notes, totalDurationMs })
+      player.conn.send({ type: 'TRACK_DATA', notes, totalDurationMs, instrumentMode, previewInstrument })
     }
   }
 
@@ -198,6 +237,12 @@ export class NetworkManager {
   // 内部实现
   // ==========================================
 
+  /** 给主机发送准备就绪状态 */
+  sendReadyState(ready: boolean) {
+    if (this.role !== 'client' || !this.hostConn || !this.hostConn.open) return
+    this.hostConn.send({ type: 'READY_STATE', ready })
+  }
+
   private setRole(role: NetworkRole) {
     this.role = role
     this.events.onRoleChange?.(role)
@@ -216,9 +261,10 @@ export class NetworkManager {
     this.players.clear()
     this.setRole('none')
     this.timeOffset = 0
+    this.notifyPlayersChange()
   }
 
-  private broadcast(msg: NetworkMessage) {
+  broadcast(msg: NetworkMessage) {
     for (const player of this.players.values()) {
       if (player.conn.open) {
         player.conn.send(msg)
@@ -245,6 +291,12 @@ export class NetworkManager {
           clientSendTime: msg.clientSendTime,
           hostReplyTime: Date.now()
         })
+      } else if (msg.type === 'READY_STATE') {
+        const player = this.players.get(conn.peer)
+        if (player) {
+          player.ready = msg.ready
+          this.notifyPlayersChange()
+        }
       }
     })
 
@@ -303,7 +355,9 @@ export class NetworkManager {
     } else if (msg.type === 'SEEK') {
       this.events.onSeekCommand?.(msg.timeMs)
     } else if (msg.type === 'TRACK_DATA') {
-      this.events.onTrackDataReceived?.(msg.notes, msg.totalDurationMs)
+      this.events.onTrackDataReceived?.(msg.notes, msg.totalDurationMs, msg.instrumentMode, msg.previewInstrument)
+    } else if (msg.type === 'OVERVIEW_DATA') {
+      this.events.onOverviewDataReceived?.(msg.playerCombinedTracks, msg.multiplayerPreviewInstruments, msg.totalDurationMs, msg.hostName)
     }
   }
 }

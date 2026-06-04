@@ -72,9 +72,9 @@
 }
 
 .mp-btn {
-  background: var(--bg-highlight);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 10px 16px;
   border-radius: 4px;
   font-size: 14px;
@@ -88,8 +88,8 @@
 }
 
 .mp-btn:hover {
-  background: var(--text-primary);
-  color: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .mp-btn:disabled {
@@ -98,12 +98,58 @@
 }
 
 .mp-btn.primary {
-  background: var(--text-primary);
-  color: var(--bg-primary);
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.4);
 }
 
 .mp-btn.primary:hover {
-  opacity: 0.9;
+  background: rgba(99, 102, 241, 0.35);
+  border-color: rgba(99, 102, 241, 0.55);
+}
+
+.mp-btn.host-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.mp-btn.host-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* 浅色模式按钮适配 */
+.light .mp-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.light .mp-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.light .mp-btn.primary {
+  background: rgba(79, 70, 229, 0.12);
+  color: #4f46e5;
+  border-color: rgba(79, 70, 229, 0.25);
+}
+
+.light .mp-btn.primary:hover {
+  background: rgba(79, 70, 229, 0.2);
+  border-color: rgba(79, 70, 229, 0.4);
+}
+
+.light .mp-btn.host-btn {
+  background: rgba(0, 0, 0, 0.05);
+  color: #000000;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.light .mp-btn.host-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.24);
 }
 
 /* 房间内视图 */
@@ -212,3 +258,96 @@
 .mp-status-dot.error {
   background: #ff3333;
 }
+
+/* 客机就绪操作区 */
+.client-ready-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+}
+
+.ready-toggle-btn {
+  width: 200px;
+  height: 48px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 24px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 未准备状态：低调暗灰玻璃感 */
+.ready-toggle-btn.not-ready {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-normal);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.ready-toggle-btn.not-ready:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* 已就绪状态：低调森林绿玻璃感 */
+.ready-toggle-btn.is-ready {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: none;
+}
+
+.ready-toggle-btn.is-ready:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.5);
+  transform: translateY(-1px);
+}
+
+/* 空音轨占位符样式 */
+.mp-empty-tracks-placeholder {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin: 8px 0 16px 0;
+  line-height: 1.6;
+}
+
+/* 浅色模式就绪按钮样式适配 */
+.light .ready-toggle-btn.not-ready {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.light .ready-toggle-btn.not-ready:hover {
+  background: rgba(0, 0, 0, 0.09);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.light .ready-toggle-btn.is-ready {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.light .ready-toggle-btn.is-ready:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+

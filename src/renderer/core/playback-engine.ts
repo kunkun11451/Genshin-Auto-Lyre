@@ -72,6 +72,29 @@ export class PlaybackEngine {
   }
 
   /**
+   * 热加载音符序列（在播放中无缝切换，保持播放状态和进度）
+   */
+  hotLoad(notes: MappedNote[], totalDurationMs: number): void {
+    const wasPlaying = this.state === 'playing'
+    
+    // 1. 释放当前的活跃音符，防挂音
+    this.releaseAllActiveNotes()
+    
+    // 2. 更新音符和总时长
+    this.notes = [...notes].sort((a, b) => a.startMs - b.startMs)
+    this.totalDurationMs = totalDurationMs
+    
+    // 3. 重新定位音符索引
+    this.noteIndex = this.findNoteIndex(this.currentTimeMs)
+    
+    // 4. 如果是播放状态，重调时间基准
+    if (wasPlaying) {
+      this.startTimestamp = performance.now()
+      this.pauseOffset = this.currentTimeMs
+    }
+  }
+
+  /**
    * 开始/继续播放
    */
   play(): void {

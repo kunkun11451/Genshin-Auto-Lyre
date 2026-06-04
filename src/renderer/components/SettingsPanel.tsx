@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Settings, Piano, Sliders, Info } from 'lucide-react'
+import { X, Settings, Piano, Sliders, Info, Volume2 } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import type { BlackKeyConfig, BlackKeyStrategy } from '../core/note-mapper'
 import './SettingsPanel.css'
@@ -69,8 +69,6 @@ export function SettingsPanel(): React.JSX.Element | null {
   const setIsSettingsOpen = useAppStore(state => state.setIsSettingsOpen)
   const onClose = () => setIsSettingsOpen(false)
 
-  const instrumentMode = useAppStore(state => state.instrumentMode)
-  const onInstrumentModeChange = useAppStore(state => state.setInstrumentMode)
   const blackKeyConfig = useAppStore(state => state.blackKeyConfig)
   const onBlackKeyConfigChange = useAppStore(state => state.setBlackKeyConfig)
   const transpose = useAppStore(state => state.transpose)
@@ -79,6 +77,8 @@ export function SettingsPanel(): React.JSX.Element | null {
   const onStartDelaySecChange = useAppStore(state => state.setStartDelaySec)
   const audioPreviewEnabled = useAppStore(state => state.audioPreviewEnabled)
   const onAudioPreviewEnabledChange = useAppStore(state => state.setAudioPreviewEnabled)
+  const audioPreviewInstrument = useAppStore(state => state.audioPreviewInstrument)
+  const onAudioPreviewInstrumentChange = useAppStore(state => state.setAudioPreviewInstrument)
   const isMultiplayerEnabled = useAppStore(state => state.isMultiplayerEnabled)
   const onMultiplayerEnabledChange = useAppStore(state => state.setIsMultiplayerEnabled)
   const theme = useAppStore(state => state.theme)
@@ -266,26 +266,31 @@ export function SettingsPanel(): React.JSX.Element | null {
             <X size={20} />
           </button>
         </div>
-
         <div className="settings-content">
-          {/* 乐器模式 */}
+          {/* 基础设置 */}
           <div className="settings-group">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Piano size={16} color="var(--text-dim)" />
-              <h3>乐器模式</h3>
+              <h3>基础设置</h3>
             </div>
-            <div className="setting-item">
+            <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
               <label>选择乐器</label>
-              <select 
-                value={instrumentMode} 
-                onChange={(e) => onInstrumentModeChange(e.target.value as 'standard' | 'chord' | 'horn')}
+              <select
+                value={audioPreviewInstrument}
+                onChange={(e) => onAudioPreviewInstrumentChange(e.target.value)}
+                disabled={isMultiplayerEnabled}
+                style={{ width: '120px' }}
               >
-                <option value="standard">普通琴</option>
-                <option value="chord">和弦琴(低可用性)</option>
-                <option value="horn">晚风圆号</option>
+                <option value="Lyre">风物之诗琴</option>
+                <option value="Zither">镜花之琴</option>
+                <option value="Vintage-Lyre">老旧的诗琴</option>
+                <option value="Horn">晚风圆号</option>
+                <option value="Ukulele">悠可琴</option>
+                <option value="LingeringEuphonia">「余音」</option>
+                <option value="LeapingSpiritPiano">跃律琴</option>
+                <option value="HarmonicKey">谐律键琴</option>
               </select>
             </div>
-            
             <div className="setting-item" style={{ marginTop: '12px' }}>
               <label>主题外观</label>
               <select 
@@ -370,8 +375,16 @@ export function SettingsPanel(): React.JSX.Element | null {
                 min="0" max="10" 
               />
             </div>
+          </div>
+
+          {/* 音频预览 */}
+          <div className="settings-group" style={{ marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <Volume2 size={16} color="var(--text-dim)" />
+              <h3>音频预览与调试</h3>
+            </div>
             <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
-              <label>midi试听(打开后将关闭键盘操作) {isMultiplayerEnabled && '(多人演奏中已强制禁用)'}</label>
+              <label>开启按键试听 {isMultiplayerEnabled && '(多人演奏中已强制禁用)'}</label>
               <label className="toggle-switch" style={isMultiplayerEnabled ? { pointerEvents: 'none' } : {}}>
                 <input 
                   type="checkbox" 
