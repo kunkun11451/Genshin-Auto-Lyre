@@ -176,9 +176,14 @@ function App(): React.JSX.Element {
     }
     mediaQuery.addEventListener('change', listener)
     
+    const cleanupMaximized = window.electronAPI.onMaximizedStateChanged((maximized) => {
+      useAppStore.getState().setIsMaximized(maximized)
+    })
+    
     return () => {
       unsub()
       mediaQuery.removeEventListener('change', listener)
+      cleanupMaximized()
     }
   }, [])
 
@@ -547,11 +552,11 @@ function App(): React.JSX.Element {
     }
 
     if (playbackState === 'playing') {
-      engineRef.current.pause()
-      
       const state = useAppStore.getState()
       if (state.isMultiplayerEnabled && networkManager.currentRole === 'host') {
-        networkManager.broadcastPause()
+        handleStop()
+      } else {
+        engineRef.current.pause()
       }
     } else {
       // 启动倒计时

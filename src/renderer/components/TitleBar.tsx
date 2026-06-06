@@ -5,16 +5,10 @@ import './TitleBar.css'
 
 export function TitleBar(): React.JSX.Element {
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false)
-  const [isMaximized, setIsMaximized] = useState(false)
+  const isMaximized = useAppStore(state => state.isMaximized)
   const isMiniMode = useAppStore(state => state.isMiniMode)
   const setMiniMode = useAppStore(state => state.setMiniMode)
-
-  useEffect(() => {
-    const cleanup = window.electronAPI.onMaximizedStateChanged((maximized) => {
-      setIsMaximized(maximized)
-    })
-    return cleanup
-  }, [])
+  const isMultiplayerEnabled = useAppStore(state => state.isMultiplayerEnabled)
 
   const handleMinimize = () => window.electronAPI.minimize()
   const handleMaximize = () => window.electronAPI.maximize()
@@ -35,14 +29,16 @@ export function TitleBar(): React.JSX.Element {
         <span>Auto Lyre</span>
       </div>
       <div className="title-bar-controls">
-        <button 
-          className="title-bar-btn" 
-          onClick={handleToggleMiniMode} 
-          title={isMiniMode ? "退出小窗模式" : "开启小窗模式"}
-          style={{ color: isMiniMode ? '#4ade80' : 'var(--text-secondary)' }}
-        >
-          <PictureInPicture size={14} />
-        </button>
+        {!isMultiplayerEnabled && (
+          <button 
+            className="title-bar-btn" 
+            onClick={handleToggleMiniMode} 
+            title={isMiniMode ? "退出小窗模式" : "开启小窗模式"}
+            style={{ color: isMiniMode ? '#4ade80' : 'var(--text-secondary)' }}
+          >
+            <PictureInPicture size={14} />
+          </button>
+        )}
         <button 
           className="title-bar-btn" 
           onClick={handleToggleAlwaysOnTop} 

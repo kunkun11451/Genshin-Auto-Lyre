@@ -41,10 +41,10 @@ export function PlaybackControls({
   isMiniMode = false,
   delayDurationSec = null
 }: PlaybackControlsProps): React.JSX.Element {
-  
+
   const currentTimeMs = useAppStore(state => state.currentTimeMs)
   const progressPercent = totalDurationMs > 0 ? (currentTimeMs / totalDurationMs) * 100 : 0
-  
+
   const audioPreviewEnabled = useAppStore(state => state.audioPreviewEnabled)
   const setAudioPreviewEnabled = useAppStore(state => state.setAudioPreviewEnabled)
   const audioPreviewInstrument = useAppStore(state => state.audioPreviewInstrument)
@@ -86,23 +86,24 @@ export function PlaybackControls({
     }
   }, [isQuickSettingsOpen])
 
+  const isPlaybackControlsDisabled = isMultiplayerEnabled && networkManager.currentRole !== 'host'
+
   const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isPlaybackControlsDisabled) return
     const rect = e.currentTarget.getBoundingClientRect()
     const clickX = e.clientX - rect.left
     const percent = clickX / rect.width
     onSeek(percent * totalDurationMs)
   }
 
-  const isClientInMultiplayer = isMultiplayerEnabled && networkManager.currentRole === 'client'
-
   return (
     <div className={`playback-controls ${isMiniMode ? 'mini-mode' : ''}`}>
       <div className="progress-container">
         <span className="time-display">{formatTime(currentTimeMs)}</span>
-        <div className="progress-bar-wrapper" onClick={handleProgressBarClick}>
+        <div className={`progress-bar-wrapper ${isPlaybackControlsDisabled ? 'disabled' : ''}`} onClick={handleProgressBarClick}>
           <div className="progress-bar-track">
-            <div 
-              className="progress-bar-fill" 
+            <div
+              className="progress-bar-fill"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -113,31 +114,31 @@ export function PlaybackControls({
       <div className="controls-main">
         {/* 左侧：停止 */}
         <div className="controls-left">
-          <button className="btn-icon" onClick={onStop} title="停止" disabled={isClientInMultiplayer}>
+          <button className="btn-icon" onClick={onStop} title="停止" disabled={isPlaybackControlsDisabled}>
             <Square size={16} />
           </button>
         </div>
 
         {/* 中间：上一首、播放、下一首 */}
         <div className="controls-center">
-          <button className="btn-icon" onClick={onPrev} title="上一首" disabled={isClientInMultiplayer}>
+          <button className="btn-icon" onClick={onPrev} title="上一首" disabled={isPlaybackControlsDisabled}>
             <SkipBack size={18} />
           </button>
-          <button className="btn-icon play-btn" onClick={onPlayPause} title={isPlaying ? '暂停' : '播放'} disabled={isClientInMultiplayer}>
+          <button className="btn-icon play-btn" onClick={onPlayPause} title={isPlaying ? '暂停' : '播放'} disabled={isPlaybackControlsDisabled}>
             {delayDurationSec !== null && (
               <svg className="play-delay-circle" viewBox="0 0 44 44">
-                <circle 
-                  cx="22" 
-                  cy="22" 
-                  r="20" 
-                  pathLength="100" 
-                  style={{ animationDuration: `${Math.max(0.1, delayDurationSec - 0.25)}s` }} 
+                <circle
+                  cx="22"
+                  cy="22"
+                  r="20"
+                  pathLength="100"
+                  style={{ animationDuration: `${Math.max(0.1, delayDurationSec - 0.25)}s` }}
                 />
               </svg>
             )}
             {isPlaying ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: '4px' }} />}
           </button>
-          <button className="btn-icon" onClick={onNext} title="下一首" disabled={isClientInMultiplayer}>
+          <button className="btn-icon" onClick={onNext} title="下一首" disabled={isPlaybackControlsDisabled}>
             <SkipForward size={18} />
           </button>
         </div>
@@ -148,15 +149,15 @@ export function PlaybackControls({
             <div className="speed-control">
               <span style={{ minWidth: '40px', textAlign: 'center' }}>{speed.toFixed(1)}x</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <button 
-                  className="btn-speed" 
+                <button
+                  className="btn-speed"
                   onClick={() => onSpeedChange(Math.min(2.0, speed + 0.1))}
                   title="加速"
                 >
                   <ChevronUp size={14} />
                 </button>
-                <button 
-                  className="btn-speed" 
+                <button
+                  className="btn-speed"
                   onClick={() => onSpeedChange(Math.max(0.5, speed - 0.1))}
                   title="减速"
                 >
@@ -166,18 +167,18 @@ export function PlaybackControls({
             </div>
           )}
           <div style={{ position: 'relative' }} ref={popupRef}>
-            <button 
-              className={`btn-icon ${isQuickSettingsOpen ? 'active' : ''}`} 
+            <button
+              className={`btn-icon ${isQuickSettingsOpen ? 'active' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setIsQuickSettingsOpen(!isQuickSettingsOpen);
-              }} 
-              title="快速设置" 
+              }}
+              title="快速设置"
               style={isMiniMode ? {} : { marginLeft: '16px' }}
             >
               <Settings size={18} />
             </button>
-            
+
             {shouldRenderPopup && (
               <div className={`quick-settings-popup ${isPopupClosing ? 'closing' : ''}`}>
                 <div className="quick-setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
@@ -185,8 +186,8 @@ export function PlaybackControls({
                     <Piano size={14} />
                     <span>乐器</span>
                   </div>
-                  <select 
-                    value={audioPreviewInstrument} 
+                  <select
+                    value={audioPreviewInstrument}
                     onChange={(e) => setAudioPreviewInstrument(e.target.value)}
                     disabled={isMultiplayerEnabled}
                   >
@@ -195,20 +196,20 @@ export function PlaybackControls({
                     <option value="Vintage-Lyre">老旧的诗琴</option>
                     <option value="Horn">晚风圆号</option>
                     <option value="Ukulele">悠可琴</option>
-                    <option value="LingeringEuphonia">余音</option>
+                    <option value="LingeringEuphonia">「余音」</option>
                     <option value="LeapingSpiritPiano">跃律琴</option>
                     <option value="HarmonicKey">谐律键琴</option>
                   </select>
                 </div>
-                
+
                 <div className="quick-setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
                   <div className="quick-setting-label">
                     <Volume2 size={14} />
                     <span>试听</span>
                   </div>
                   <label className="toggle-switch small" style={isMultiplayerEnabled ? { pointerEvents: 'none' } : {}}>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={audioPreviewEnabled}
                       onChange={(e) => setAudioPreviewEnabled(e.target.checked)}
                       disabled={isMultiplayerEnabled}
@@ -223,18 +224,18 @@ export function PlaybackControls({
                     <span>多人合奏</span>
                   </div>
                   <label className="toggle-switch small">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={isMultiplayerEnabled}
                       onChange={(e) => setIsMultiplayerEnabled(e.target.checked)}
                     />
                     <span className="toggle-slider"></span>
                   </label>
                 </div>
-                
+
                 <div className="quick-setting-divider"></div>
-                
-                <button 
+
+                <button
                   className="quick-setting-more-btn"
                   onClick={() => {
                     setIsQuickSettingsOpen(false)

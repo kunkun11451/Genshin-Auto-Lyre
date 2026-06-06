@@ -36,6 +36,10 @@
   cursor: pointer;
 }
 
+.progress-bar-wrapper.disabled {
+  cursor: not-allowed;
+}
+
 .progress-bar-track {
   width: 100%;
   height: 6px;
@@ -289,4 +293,20 @@
   background: var(--hover-bg);
   color: var(--text-primary);
   box-shadow: inset 0 0 0 1px var(--glass-border);
+}
+
+.btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-icon:disabled:hover {
+  background: transparent;
+  transform: none;
+}
+
+.btn-icon.play-btn:disabled:hover {
+  background: var(--hover-bg);
+  transform: none;
+  box-shadow: none;
 }

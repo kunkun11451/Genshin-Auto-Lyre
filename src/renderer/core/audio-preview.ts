@@ -29,7 +29,7 @@ export const INSTRUMENT_DIR_MAP: Record<string, string> = {
   "Zither": "镜花之琴",
   "Horn": "晚风圆号",
   "Ukulele": "悠可琴",
-  "LingeringEuphonia": "余音",
+  "LingeringEuphonia": "「余音」",
   "LeapingSpiritPiano": "跃律琴",
   "HarmonicKey": "谐律键琴",
   "DjemDjemDrum": "聚聚鼓"
@@ -67,7 +67,7 @@ class AudioPreview {
       // 动态构建当前乐器存在的文件映射表
       const fileIndices = INSTRUMENT_FILES[this.currentInstrumentId] || [0]
       const urls: Record<string, string> = {}
-      
+
       fileIndices.forEach((idx) => {
         const noteName = KEY_TO_NOTE_NAME[idx]
         if (noteName) {
@@ -89,7 +89,7 @@ class AudioPreview {
             this.initialized = true
             this.isLoading = false
             console.log(`试听乐器 [${this.currentInstrumentId}] 采样加载完成！`)
-            
+
             if (oldSynth) {
               try {
                 oldSynth.releaseAll()
@@ -132,7 +132,7 @@ class AudioPreview {
     return new Promise<Tone.Sampler>((resolve) => {
       const fileIndices = INSTRUMENT_FILES[instrumentId] || [0]
       const urls: Record<string, string> = {}
-      
+
       fileIndices.forEach((idx) => {
         const noteName = KEY_TO_NOTE_NAME[idx]
         if (noteName) {
@@ -164,7 +164,7 @@ class AudioPreview {
   async setInstrument(id: string) {
     if (this.currentInstrumentId === id) return
     this.currentInstrumentId = id
-    
+
     // 如果已经启用预览，立刻重载 Sampler，无视先前是否初始化成功（防锁死）
     if (this.enabled) {
       this.isLoading = true

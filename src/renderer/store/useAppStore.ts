@@ -111,6 +111,9 @@ interface AppState {
   updateProgress: number
   updateErrorMsg: string
 
+  isMaximized: boolean
+  setIsMaximized: (isMaximized: boolean) => void
+
   // ===== Actions =====
   setMidiFiles: (files: MidiFileInfo[]) => void
   selectFile: (path: string | null) => void
@@ -205,6 +208,7 @@ export const useAppStore = create<AppState>()(
       updateInfo: null,
       updateProgress: 0,
       updateErrorMsg: '',
+      isMaximized: false,
 
       // ===== Actions =====
 
@@ -243,6 +247,10 @@ export const useAppStore = create<AppState>()(
       clearActiveKeys: () => set({ activeKeys: new Set() }),
 
       setMiniMode: (isMini) => {
+        if (isMini && get().isMultiplayerEnabled) {
+          // 如果开启了多人合奏，禁用切换为小窗模式
+          return
+        }
         if (isMini === get().isMiniMode) return // 状态一致时不处理，防止重复隐藏窗口造成闪烁
         // 先发送 IPC 让主进程隐藏并调整窗口
         window.electronAPI.setMiniMode(isMini)
@@ -266,6 +274,10 @@ export const useAppStore = create<AppState>()(
         set({ isMultiplayerEnabled: enabled })
         if (enabled) {
           set({ audioPreviewEnabled: false })
+          // 如果当前是小窗模式，自动切回普通模式
+          if (get().isMiniMode) {
+            get().setMiniMode(false)
+          }
         }
       },
       setMultiplayerAssignments: (assignments) => set({ multiplayerAssignments: assignments }),
@@ -330,7 +342,8 @@ export const useAppStore = create<AppState>()(
       setUpdateStatus: (s) => set({ updateStatus: s }),
       setUpdateInfo: (info) => set({ updateInfo: info }),
       setUpdateProgress: (p) => set({ updateProgress: p }),
-      setUpdateErrorMsg: (msg) => set({ updateErrorMsg: msg })
+      setUpdateErrorMsg: (msg) => set({ updateErrorMsg: msg }),
+      setIsMaximized: (isMax) => set({ isMaximized: isMax })
     }),
     {
       name: 'genshin-auto-lyre-storage',

@@ -26,26 +26,26 @@ const parseMarkdown = (text: string) => {
       const level = headerMatch[1].length
       const titleText = headerMatch[2]
       return (
-        <div key={index} style={{ 
-          fontWeight: 'bold', 
-          fontSize: level === 3 ? '13px' : '14px', 
-          color: 'var(--text-primary)', 
-          marginTop: '6px', 
-          marginBottom: '2px' 
+        <div key={index} style={{
+          fontWeight: 'bold',
+          fontSize: level === 3 ? '13px' : '14px',
+          color: 'var(--text-primary)',
+          marginTop: '6px',
+          marginBottom: '2px'
         }}>
           {parseInlineBold(titleText)}
         </div>
       )
     }
-    
+
     // 2. 处理无序列表 (- 或者是 * 开头)
     const listMatch = line.match(/^(\s*)[-*+]\s+(.*)$/)
     if (listMatch) {
       const listText = listMatch[2]
       return (
-        <div key={index} style={{ 
-          display: 'flex', 
-          paddingLeft: '8px', 
+        <div key={index} style={{
+          display: 'flex',
+          paddingLeft: '8px',
           lineHeight: '1.6',
           alignItems: 'flex-start'
         }}>
@@ -54,7 +54,7 @@ const parseMarkdown = (text: string) => {
         </div>
       )
     }
-    
+
     // 3. 处理普通换行文本
     return (
       <div key={index} style={{ minHeight: '1.4em', lineHeight: '1.5' }}>
@@ -101,7 +101,7 @@ export function SettingsPanel(): React.JSX.Element | null {
   const updateInfo = useAppStore(state => state.updateInfo)
   const updateProgress = useAppStore(state => state.updateProgress)
   const updateErrorMsg = useAppStore(state => state.updateErrorMsg)
-  
+
   const setUpdateStatus = useAppStore(state => state.setUpdateStatus)
   const setUpdateInfo = useAppStore(state => state.setUpdateInfo)
   const setUpdateErrorMsg = useAppStore(state => state.setUpdateErrorMsg)
@@ -137,7 +137,7 @@ export function SettingsPanel(): React.JSX.Element | null {
   const handleApplyUpdateLater = () => {
     // 标记为稍后更新，实际上主进程已经在 will-quit 钩子中准备好了
     window.electronAPI.applyUpdate(false)
-    setUpdateStatus('idle') 
+    setUpdateStatus('idle')
     setUpdateInfo(null)
   }
 
@@ -166,7 +166,7 @@ export function SettingsPanel(): React.JSX.Element | null {
       const singleBlockedKeys = new Set(['+', '-', '=', '/'])
 
       if (
-        gameKeys.has(key.toLowerCase()) || 
+        gameKeys.has(key.toLowerCase()) ||
         ['Control', 'Shift', 'Alt', 'Meta'].includes(key) ||
         (!isModifierActive && singleBlockedKeys.has(key))
       ) {
@@ -293,8 +293,8 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
             <div className="setting-item" style={{ marginTop: '12px' }}>
               <label>主题外观</label>
-              <select 
-                value={theme} 
+              <select
+                value={theme}
                 onChange={(e) => onThemeChange(e.target.value as 'system' | 'light' | 'dark')}
               >
                 <option value="system">跟随系统</option>
@@ -312,8 +312,8 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
             <div className="setting-item">
               <label>低音八度 (C3~B3)</label>
-              <select 
-                value={blackKeyConfig.lowOctave} 
+              <select
+                value={blackKeyConfig.lowOctave}
                 onChange={(e) => handleStrategyChange('lowOctave', e.target.value as BlackKeyStrategy)}
               >
                 <option value="skip">不演奏</option>
@@ -325,8 +325,8 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
             <div className="setting-item">
               <label>中音八度 (C4~B4)</label>
-              <select 
-                value={blackKeyConfig.midOctave} 
+              <select
+                value={blackKeyConfig.midOctave}
                 onChange={(e) => handleStrategyChange('midOctave', e.target.value as BlackKeyStrategy)}
               >
                 <option value="skip">不演奏</option>
@@ -338,8 +338,8 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
             <div className="setting-item">
               <label>高音八度 (C5~B5)</label>
-              <select 
-                value={blackKeyConfig.highOctave} 
+              <select
+                value={blackKeyConfig.highOctave}
                 onChange={(e) => handleStrategyChange('highOctave', e.target.value as BlackKeyStrategy)}
               >
                 <option value="skip">不演奏</option>
@@ -359,20 +359,20 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
             <div className="setting-item">
               <label>整体移调 (半音)</label>
-              <input 
-                type="number" 
-                value={transpose} 
+              <input
+                type="number"
+                value={transpose}
                 onChange={(e) => onTransposeChange(parseInt(e.target.value) || 0)}
-                min="-12" max="12" 
+                min="-12" max="12"
               />
             </div>
             <div className="setting-item">
               <label>启动延迟 (秒)</label>
-              <input 
-                type="number" 
-                value={startDelaySec} 
+              <input
+                type="number"
+                value={startDelaySec}
                 onChange={(e) => onStartDelaySecChange(parseInt(e.target.value) || 0)}
-                min="0" max="10" 
+                min="0" max="10"
               />
             </div>
           </div>
@@ -386,8 +386,8 @@ export function SettingsPanel(): React.JSX.Element | null {
             <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
               <label>开启按键试听 {isMultiplayerEnabled && '(多人演奏中已强制禁用)'}</label>
               <label className="toggle-switch" style={isMultiplayerEnabled ? { pointerEvents: 'none' } : {}}>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={audioPreviewEnabled}
                   onChange={(e) => onAudioPreviewEnabledChange(e.target.checked)}
                   disabled={isMultiplayerEnabled}
@@ -406,8 +406,8 @@ export function SettingsPanel(): React.JSX.Element | null {
             <div className="setting-item">
               <label>开启多人演奏模式</label>
               <label className="toggle-switch">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={isMultiplayerEnabled}
                   onChange={(e) => onMultiplayerEnabledChange(e.target.checked)}
                 />
@@ -424,7 +424,7 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
             <div className="setting-item">
               <label>暂停 / 播放</label>
-              <button 
+              <button
                 className={`shortcut-record-btn ${recordingType === 'playback' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('playback')}
                 title="点击后按下快捷键"
@@ -434,7 +434,7 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
             <div className="setting-item">
               <label>停止</label>
-              <button 
+              <button
                 className={`shortcut-record-btn ${recordingType === 'stop' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('stop')}
                 title="点击后按下快捷键"
@@ -444,7 +444,7 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
             <div className="setting-item">
               <label>演奏加速</label>
-              <button 
+              <button
                 className={`shortcut-record-btn ${recordingType === 'speedUp' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('speedUp')}
                 title="点击后按下快捷键"
@@ -454,7 +454,7 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
             <div className="setting-item">
               <label>演奏减速</label>
-              <button 
+              <button
                 className={`shortcut-record-btn ${recordingType === 'speedDown' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('speedDown')}
                 title="点击后按下快捷键"
@@ -463,7 +463,7 @@ export function SettingsPanel(): React.JSX.Element | null {
               </button>
             </div>
           </div>
-          
+
           {/* 关于与更新 */}
           <div className="settings-group" style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
@@ -475,11 +475,11 @@ export function SettingsPanel(): React.JSX.Element | null {
                 <label>当前版本</label>
                 <span style={{ color: 'var(--text-dim)' }}>v{appVersion || '...'}</span>
               </div>
-              
+
               <div style={{ display: 'flex', width: '100%', gap: '8px', marginTop: '4px', flexDirection: 'column' }}>
                 {updateStatus === 'idle' || updateStatus === 'error' ? (
                   <>
-                    <button 
+                    <button
                       onClick={handleCheckUpdate}
                       style={{ padding: '6px 12px', background: 'var(--bg-highlight)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: '4px', cursor: 'pointer', width: '100%' }}
                     >
@@ -497,7 +497,7 @@ export function SettingsPanel(): React.JSX.Element | null {
                     <div className="update-release-notes" style={{ fontSize: '12px', color: 'var(--text-secondary)', maxHeight: '120px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {parseMarkdown(updateInfo?.releaseNotes)}
                     </div>
-                    <button 
+                    <button
                       onClick={handleStartUpdate}
                       style={{ padding: '6px 12px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: '4px', cursor: 'pointer', marginTop: '4px', fontSize: '13px' }}
                     >
@@ -525,13 +525,13 @@ export function SettingsPanel(): React.JSX.Element | null {
                       或者在您关闭软件后，它也会在后台自动完成升级替换。
                     </div>
                     <div style={{ display: 'flex', width: '100%', gap: '8px', marginTop: '6px' }}>
-                      <button 
+                      <button
                         onClick={handleApplyUpdateNow}
                         style={{ flex: 1, padding: '8px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                       >
                         立即重启更新
                       </button>
-                      <button 
+                      <button
                         onClick={handleApplyUpdateLater}
                         style={{ flex: 1, padding: '8px 12px', background: 'transparent', color: 'var(--text-dim)', border: '1px solid var(--glass-border)', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                       >

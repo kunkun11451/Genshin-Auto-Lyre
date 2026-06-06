@@ -4,15 +4,22 @@
   flex-direction: column;
   background: var(--bg-primary);
   color: var(--text-primary);
-  padding: 24px;
-  overflow-y: auto;
   position: relative;
+  overflow: hidden;
+}
+
+.mp-scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mp-header {
-  margin-bottom: 24px;
   border-bottom: 1px solid var(--glass-border);
-  padding-bottom: 16px;
 }
 
 .mp-header h2 {
@@ -351,3 +358,555 @@
   border-color: rgba(16, 185, 129, 0.4);
 }
 
+/* 融合顶部导航栏设计 */
+.mp-header-fusion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 16px;
+}
+
+.mp-header-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.mp-header-left h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 磨砂玻璃房间号 Badge */
+.mp-room-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  overflow: hidden;
+  height: 28px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.mp-room-badge:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.mp-room-badge:active {
+  transform: translateY(0);
+}
+
+.mp-room-badge .badge-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.03);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--glass-border);
+}
+
+.mp-room-badge .badge-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 0 12px;
+  letter-spacing: 0.5px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* 连接状态指示器 */
+.mp-header-fusion .mp-status-indicator {
+  background: rgba(0, 255, 102, 0.04);
+  border: 1px solid rgba(0, 255, 102, 0.15);
+  border-radius: 20px;
+  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #00ff66;
+}
+
+/* 迷你在线玩家准备列表 */
+.mp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mp-mini-players {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mini-player-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
+  transition: all 0.2s ease;
+}
+
+.mini-player-tag.ready {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #10b981;
+}
+
+.disconnect-btn {
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  color: #ef4444 !important;
+}
+
+.disconnect-btn:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+/* Toast 提示 */
+.mp-status-toast {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translate(-50%, -12px);
+  background: rgba(30, 30, 36, 0.95); /* 灰黑色背景 */
+  border: 1px solid rgba(255, 255, 255, 0.08); /* 微微白边 */
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.mp-status-toast.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+/* 主机双栏排版 */
+.mp-host-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mp-host-layout.maximized {
+  flex-direction: row;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.mp-host-layout.maximized .mp-layout-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.mp-host-layout.maximized .mp-preview-column {
+  border-right: 1px solid var(--glass-border);
+  padding-right: 24px;
+}
+
+.mp-host-layout.maximized .mp-track-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 6px;
+}
+
+/* 最大化时固定高度与局部滚动 */
+.mp-scroll-content.maximized-host {
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mp-scroll-content.maximized-host .mp-room {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 浅色模式适配 */
+.light .mp-room-badge {
+  background: rgba(0, 0, 0, 0.03);
+}
+.light .mp-room-badge:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+.light .mp-room-badge .badge-label {
+  background: rgba(0, 0, 0, 0.015);
+}
+.light .mp-header-fusion .mp-status-indicator {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #059669;
+}
+.light .mini-player-tag {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+.light .mini-player-tag.ready {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #059669;
+}
+
+.light .mp-status-toast {
+  background: rgba(255, 255, 255, 0.94);
+  color: #1f2937;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* 下拉容器包装 */
+.mp-room-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* 带有下拉箭头的 Badge 样式 */
+.mp-room-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 28px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.mp-room-badge.dropdown-active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 箭头旋转动画 */
+.mp-room-badge .badge-arrow {
+  transition: transform 0.2s ease;
+}
+.mp-room-badge.dropdown-active .badge-arrow {
+  transform: rotate(180deg);
+}
+
+/* 下拉菜单本身 */
+.mp-room-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 220px;
+  background: var(--bg-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: mp-dropdown-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top left;
+}
+
+.mp-room-dropdown-menu.closing {
+  animation: mp-dropdown-fade-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes mp-dropdown-fade-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes mp-dropdown-fade-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+}
+
+/* 下拉菜单头部，点击复制房间号 */
+.mp-dropdown-header {
+  padding: 0 4px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: opacity 0.15s;
+}
+
+.mp-dropdown-header:hover {
+  opacity: 0.8;
+}
+
+.mp-dropdown-header strong {
+  color: var(--primary);
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+.mp-dropdown-header .copy-tip {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.mp-dropdown-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 4px 0;
+}
+
+/* 玩家列表项 */
+.mp-dropdown-players {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mp-dropdown-player-item {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  gap: 8px;
+  color: var(--text-primary);
+}
+
+.mp-dropdown-player-item.empty {
+  color: var(--text-dim);
+}
+
+.player-p-index {
+  font-size: 10px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
+  padding: 1px 4px;
+  border-radius: 3px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.mp-dropdown-player-item.host .player-p-index {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+.player-p-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-p-name.empty {
+  font-style: italic;
+}
+
+.player-role-tag {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-left: 2px;
+}
+
+/* 勾的颜色设计 */
+.player-p-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 准备了是绿色的勾 */
+.player-p-check.ready {
+  color: #10b981;
+}
+
+/* 未准备是灰色的勾 */
+.player-p-check.not-ready {
+  color: #6b7280;
+}
+
+.player-p-check.hidden {
+  visibility: hidden;
+}
+
+/* 浅色模式适配 */
+.light .mp-room-dropdown-menu {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.light .player-p-index {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.light .mp-dropdown-player-item.host .player-p-index {
+  background: rgba(79, 70, 229, 0.08);
+  color: #4f46e5;
+}
+
+.light .player-p-check.not-ready {
+  color: #9ca3af;
+}
+
+/* 分配按钮组 */
+.mp-assign-btn-group {
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  overflow: hidden;
+  padding: 2px;
+  gap: 2px;
+}
+
+.mp-assign-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 28px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mp-assign-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.mp-assign-btn.active {
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+}
+
+.mp-assign-btn.ban-btn.active {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.mp-assign-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* 浅色模式适配 */
+.light .mp-assign-btn-group {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.light .mp-assign-btn.active {
+  background: rgba(79, 70, 229, 0.12);
+  color: #4f46e5;
+}
+
+.light .mp-assign-btn.ban-btn.active {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+/* 乐器选择并排按钮组 */
+.mp-inst-btn-group {
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  overflow: hidden;
+  padding: 2px;
+  gap: 2px;
+}
+
+.mp-inst-btn {
+  background: transparent;
+  border: none;
+  padding: 1px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+}
+
+.mp-inst-btn img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.mp-inst-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 0.8;
+}
+
+.mp-inst-btn.active {
+  background: rgba(99, 102, 241, 0.25);
+  opacity: 1;
+}
+
+.mp-inst-btn:disabled {
+  opacity: 0.15;
+  cursor: not-allowed;
+}
+
+/* 浅色模式适配 */
+.light .mp-inst-btn-group {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.light .mp-inst-btn.active {
+  background: rgba(79, 70, 229, 0.12);
+}
