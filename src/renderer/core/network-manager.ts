@@ -41,14 +41,14 @@ export interface NetworkEvents {
   onStopCommand?: () => void
   onSeekCommand?: (timeMs: number) => void
   onTrackDataReceived?: (
-    notes: MappedNote[], 
-    totalDurationMs?: number, 
-    instrumentMode?: 'standard' | 'chord' | 'horn', 
+    notes: MappedNote[],
+    totalDurationMs?: number,
+    instrumentMode?: 'standard' | 'chord' | 'horn',
     previewInstrument?: string
   ) => void
   onOverviewDataReceived?: (
-    combinedTracks: Record<string, MappedNote[]>, 
-    previewInstruments: Record<string, string>, 
+    combinedTracks: Record<string, MappedNote[]>,
+    previewInstruments: Record<string, string>,
     totalDurationMs: number,
     hostName?: string
   ) => void
@@ -57,20 +57,20 @@ export interface NetworkEvents {
 export class NetworkManager {
   private peer: Peer | null = null
   private role: NetworkRole = 'none'
-  
+
   // 作为 Host 时的状态
   private players: Map<string, NetworkPlayer> = new Map()
-  
+
   // 作为 Client 时的状态
   private hostConn: DataConnection | null = null
-  
+
   // 时钟同步状态 (Client 用)
   private timeOffset: number = 0
   private syncInterval: ReturnType<typeof setInterval> | null = null
 
   public events: NetworkEvents = {}
 
-  constructor() {}
+  constructor() { }
 
   // ==========================================
   // 公共 API
@@ -98,14 +98,14 @@ export class NetworkManager {
   createDevRoom() {
     this.cleanup()
     this.setRole('host')
-    
+
     // 模拟 3 个就绪玩家
     const mockPlayers: NetworkPlayer[] = [
-      { id: 'mock_1', name: '模拟玩家 1', conn: { send: () => {} } as any, ping: 12, ready: true },
-      { id: 'mock_2', name: '模拟玩家 2', conn: { send: () => {} } as any, ping: 8, ready: true },
-      { id: 'mock_3', name: '模拟玩家 3', conn: { send: () => {} } as any, ping: 15, ready: true },
+      { id: 'mock_1', name: 'P2', conn: { send: () => { } } as any, ping: 12, ready: true },
+      { id: 'mock_2', name: 'P3', conn: { send: () => { } } as any, ping: 8, ready: true },
+      { id: 'mock_3', name: 'P4', conn: { send: () => { } } as any, ping: 15, ready: true },
     ]
-    
+
     mockPlayers.forEach(p => this.players.set(p.id, p))
     this.notifyPlayersChange()
   }
@@ -118,7 +118,7 @@ export class NetworkManager {
       const roomId = Math.random().toString(36).substring(2, 8).toUpperCase()
       // 注意：目前 peerjs 无法给 Host 自己设 metadata，Host 的名字需要别的机制同步，或者客户端直接叫它主机
       this.peer = new Peer(roomId)
-      
+
       this.peer.on('open', (id) => {
         this.setRole('host')
         resolve(id)
@@ -140,7 +140,7 @@ export class NetworkManager {
     this.cleanup()
     return new Promise((resolve, reject) => {
       this.peer = new Peer()
-      
+
       this.peer.on('open', () => {
         const conn = this.peer!.connect(hostId, { reliable: true, metadata: { name: playerName } })
         this.hostConn = conn
@@ -160,7 +160,7 @@ export class NetworkManager {
           this.cleanup()
           this.events.onDisconnected?.()
         })
-        
+
         conn.on('error', (err) => {
           this.events.onError?.(err)
           reject(err)
@@ -194,8 +194,8 @@ export class NetworkManager {
 
   /** 给某个玩家发送轨道数据 */
   sendTrackDataToPlayer(
-    playerId: string, 
-    notes: MappedNote[], 
+    playerId: string,
+    notes: MappedNote[],
     totalDurationMs?: number,
     instrumentMode?: 'standard' | 'chord' | 'horn',
     previewInstrument?: string
@@ -304,7 +304,7 @@ export class NetworkManager {
       this.players.delete(conn.peer)
       this.notifyPlayersChange()
     })
-    
+
     conn.on('error', () => {
       this.players.delete(conn.peer)
       this.notifyPlayersChange()
@@ -339,7 +339,7 @@ export class NetworkManager {
       // 计算得出本地时间比主机时间快还是慢。
       // SyncedTime = LocalTime + offset
       const newOffset = msg.hostReplyTime - (now - rtt / 2)
-      
+
       // 平滑处理 offset
       if (this.timeOffset === 0) {
         this.timeOffset = newOffset

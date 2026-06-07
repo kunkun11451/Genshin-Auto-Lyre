@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, FileMusic, FolderOpen, MoreVertical, Edit2, Trash2, Cloud } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import './FileList.css'
 import type { MidiFileInfo } from '../store/useAppStore'
 import { useAppStore } from '../store/useAppStore'
@@ -34,6 +35,7 @@ export function FileList({
   isCloudOpen = false,
   isMiniMode = false
 }: FileListProps): React.JSX.Element {
+  const { t } = useTranslation()
   const globalMiniMode = useAppStore(state => state.isMiniMode)
   const isVisible = isMiniMode === globalMiniMode
 
@@ -104,7 +106,7 @@ export function FileList({
   }
 
   const requestDelete = (file: MidiFileInfo) => {
-    if (window.confirm(`确定要删除文件 "${file.name}" 吗？（将移入回收站）`)) {
+    if (window.confirm(t('fileList.deleteConfirm', { name: file.name }))) {
       onDelete(file.path)
     }
     setContextMenu(null)
@@ -138,13 +140,13 @@ export function FileList({
   return (
     <div className={`file-list ${isMiniMode ? 'mini-mode' : ''}`}>
       <div className="file-list-header">
-        <h3>MIDI曲库</h3>
+        <h3>{t('fileList.title')}</h3>
         <div style={{ display: 'flex', gap: '8px' }}>
           {!isMiniMode && (
             <button 
               className={`btn-add ${isCloudOpen ? 'active-cloud-btn' : ''}`}
               onClick={onToggleCloud} 
-              title={isCloudOpen ? "关闭在线曲库" : "在线搜索 MIDI"}
+              title={isCloudOpen ? t('fileList.closeCloud') : t('fileList.searchCloud')}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <svg 
@@ -157,7 +159,7 @@ export function FileList({
               </svg>
             </button>
           )}
-          <button className="btn-add" onClick={onOpenDir} title="在资源管理器中打开 MIDI 文件夹" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button className="btn-add" onClick={onOpenDir} title={t('fileList.openFolder')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <FolderOpen size={14} />
           </button>
         </div>
@@ -168,7 +170,7 @@ export function FileList({
           <Search size={14} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-dim)' }} />
           <input 
             type="text" 
-            placeholder="搜索本地..." 
+            placeholder={t('fileList.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
             style={{ paddingLeft: '32px' }}
@@ -196,7 +198,7 @@ export function FileList({
               <FileMusic size={14} style={{ marginRight: '8px', color: isActive ? 'var(--text-primary)' : 'var(--text-dim)' }} />
               
               {file.path === latestDownloadedMidi && (
-                <span className="file-badge-new">新</span>
+                <span className="file-badge-new">{t('fileList.newBadge')}</span>
               )}
 
               {isEditing ? (
@@ -219,8 +221,8 @@ export function FileList({
         {filteredFiles.length === 0 && (
           <div className="empty-state">
             <FileMusic size={32} style={{ opacity: 0.2, marginBottom: '8px' }} />
-            <div>空空如也</div>
-            <div style={{ fontSize: '12px', marginTop: '4px', opacity: 0.5 }}>请点击上方文件夹按钮放入 MIDI 文件</div>
+            <div>{t('fileList.emptyState')}</div>
+            <div style={{ fontSize: '12px', marginTop: '4px', opacity: 0.5 }}>{t('fileList.emptyStateHint')}</div>
           </div>
         )}
       </div>
@@ -233,10 +235,10 @@ export function FileList({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="context-menu-item" onClick={() => startRename(contextMenu.file)}>
-            <Edit2 size={14} /> 重命名
+            <Edit2 size={14} /> {t('fileList.rename')}
           </div>
           <div className="context-menu-item danger" onClick={() => requestDelete(contextMenu.file)}>
-            <Trash2 size={14} /> 删除
+            <Trash2 size={14} /> {t('fileList.delete')}
           </div>
         </div>,
         document.body

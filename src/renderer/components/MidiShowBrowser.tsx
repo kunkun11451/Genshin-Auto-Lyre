@@ -5,6 +5,7 @@ import searchImg from '../../../resources/search.png'
 import searchGif from '../../../resources/search.gif'
 
 import { MidiShowAuthor } from './MidiShowAuthor'
+import { useTranslation } from 'react-i18next'
 
 declare global {
   interface Window {
@@ -37,6 +38,7 @@ interface MidiShowBrowserProps {
 }
 
 export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.JSX.Element {
+  const { t, i18n } = useTranslation()
   const [activeView, setActiveView] = useState<'search' | 'author'>('search')
   const [currentAuthorName, setCurrentAuthorName] = useState('')
 
@@ -106,12 +108,19 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
       containerRef.current.scrollTop = 0
     }
 
-    const targetUrl = `https://www.midishow.com/search/result?q=${encodeURIComponent(searchQuery)}&page=${page}`
+    const baseUrl = (() => {
+      const lang = i18n.language || 'zh'
+      if (lang.startsWith('en')) return 'https://www.midishow.com/en'
+      if (lang === 'zh-TW' || lang === 'yue') return 'https://www.midishow.com/zh-tw'
+      return 'https://www.midishow.com'
+    })()
+
+    const targetUrl = `${baseUrl}/search/result?q=${encodeURIComponent(searchQuery)}&page=${page}`
     
     try {
       const response = await window.electronAPI.fetchCloudSearch(targetUrl)
       if (!response.success || !response.html) {
-        throw new Error(response.error || '无法获取在线搜索结果，请检查网络连接。')
+        throw new Error(response.error || t('midiShow.networkError'))
       }
 
       const parsed = parseMidiShowHtml(response.html)
@@ -126,7 +135,7 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
       setLastSearchedQuery(searchQuery) // 只有成功获取并重绘数据后才更新实际搜索词，避免打字干扰
     } catch (err: any) {
       console.error('Fetch cloud data error:', err)
-      setError(err.message || '抓取数据失败')
+      setError(err.message || t('midiShow.fetchFailed'))
     } finally {
       setLoading(false)
     }
@@ -146,12 +155,18 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
       
       const aLink = div.querySelector('a[target="ms_p"]')
       const relativeUrl = aLink ? aLink.getAttribute('href') : ''
+      const baseUrl = (() => {
+        const lang = i18n.language || 'zh'
+        if (lang.startsWith('en')) return 'https://www.midishow.com/en'
+        if (lang === 'zh-TW' || lang === 'yue') return 'https://www.midishow.com/zh-tw'
+        return 'https://www.midishow.com'
+      })()
       const fullUrl = relativeUrl 
         ? (relativeUrl.startsWith('http') ? relativeUrl : `https://www.midishow.com${relativeUrl}`)
-        : `https://www.midishow.com/midi/${id}.html`
+        : `${baseUrl}/midi/${id}.html`
         
       const h3 = div.querySelector('h3.text-hover-primary')
-      const titleHtml = h3 ? h3.innerHTML : '未命名歌曲'
+      const titleHtml = h3 ? h3.innerHTML : t('midiShow.unnamedSong')
       
       const pDesc = div.querySelector('p.font-size-1')
       const descHtml = pDesc ? pDesc.innerHTML : ''
@@ -262,13 +277,13 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
     try {
       const res = await window.electronAPI.downloadCloudMidi(item.url)
       if (!res.success) {
-        throw new Error(res.error || '静默下载唤起失败')
+        throw new Error(res.error || t('midiShow.downloadFailed', { msg: 'Unknown Error' }))
       }
       // 成功唤起后，会由 onMidiDownloaded 监听到下载完成并自动置为 'success'
     } catch (e: any) {
       console.error('Trigger silent download error:', e)
       setDownloadStates((prev) => ({ ...prev, [item.id]: 'idle' }))
-      alert(`下载失败: ${e.message || '网络或后台错误'}`)
+      alert(t('midiShow.downloadFailed', { msg: e.message || 'Error' }))
     }
   }
 
@@ -308,14 +323,14 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
             <Search size={16} className="cloud-search-icon" />
             <input
               type="text"
-              placeholder="输入歌曲名或歌手搜索 MIDI..."
+              placeholder={t('midiShow.searchPlaceholder')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="cloud-search-input"
             />
           </div>
           <button type="submit" className="cloud-search-btn" disabled={loading}>
-            {loading ? <RefreshCw size={14} className="spinner-icon" /> : '搜 索'}
+            {loading ? <RefreshCw size={14} className="spinner-icon" /> : t('midiShow.searchBtn')}
           </button>
         </form>
       </div>
@@ -324,8 +339,8 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
       <div className="cloud-search-body">
         {loading && (
           <div className="cloud-search-status-container">
-            <img src={searchGif} className="cloud-search-loading-gif" alt="正在加载..." />
-            <div className="loading-text">正在调取搜索结果...</div>
+            <img src={searchGif} className="cloud-search-loading-gif" alt="Loading..." />
+            <div className="loading-text">{t('midiShow.loading')}</div>
           </div>
         )}
 
@@ -335,7 +350,7 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
               <div className="error-icon">⚠️</div>
               <div className="error-msg">{error}</div>
               <button onClick={() => fetchCloudData(query, currentPage)} className="retry-btn">
-                重新加载
+                {t('midiShow.retryBtn')}
               </button>
             </div>
           </div>
@@ -345,8 +360,8 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
           <div className="cloud-search-status-container">
             <div className="empty-card">
               <div className="empty-icon">📁</div>
-              <div className="empty-text">未在云端检索到 “{lastSearchedQuery}” 的相关结果</div>
-              <div className="empty-subtext">建议缩短关键词，或尝试其他热门歌曲名字</div>
+              <div className="empty-text">{t('midiShow.noResult', { query: lastSearchedQuery })}</div>
+              <div className="empty-subtext">{t('midiShow.noResultHint')}</div>
             </div>
           </div>
         )}
@@ -356,18 +371,17 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
             <div className="cloud-search-guide-content">
               <img src={searchImg} className="cloud-search-guide-img" alt="Search Guide" draggable="false" />
               <div className="cloud-search-guide-text-group">
-                <div className="cloud-search-guide-text">在线搜索由 MidiShow 驱动</div>
+                <div className="cloud-search-guide-text">{t('midiShow.poweredBy')}</div>
                 <div className="cloud-search-guide-subtext">
-                  使用前需
+                  {t('midiShow.loginHint')}
                   <button 
                     type="button" 
                     className="cloud-login-link-inline-btn" 
-                    onClick={() => window.electronAPI.openLoginWindow()}
-                    title="点击打开登录界面"
+                    onClick={() => window.electronAPI.openLoginWindow(i18n.language)}
                   >
-                    登录
+                    {t('midiShow.login')}
                   </button>
-                  才能正常使用(已登录请忽略)
+                  {t('midiShow.loginSuffix')}
                 </div>
               </div>
             </div>
@@ -384,7 +398,7 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
                     <div 
                       className={`midi-author-info ${item.authorName ? 'clickable' : ''}`} 
                       onClick={() => handleAuthorClick(item.authorName)}
-                      title={item.authorName ? `点击查看 ${item.authorName} 的主页` : undefined}
+                      title={item.authorName ? t('midiShow.authorTitle', { name: item.authorName }) : undefined}
                     >
                       {item.authorAvatar ? (
                         <img src={item.authorAvatar} alt={item.authorName} className="midi-author-avatar" draggable="false" />
@@ -392,7 +406,7 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
                         <div className="midi-author-avatar-fallback">{item.authorName ? item.authorName.charAt(0).toUpperCase() : '?'}</div>
                       )}
                       <div className="midi-author-details">
-                        <span className="midi-author-name">{item.authorName || '匿名用户'}</span>
+                        <span className="midi-author-name">{item.authorName || t('midiShow.anonymous')}</span>
                         {item.uploadTime && (
                           <span className="midi-upload-time">{item.uploadTime}</span>
                         )}
@@ -403,21 +417,21 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
                     
                     {/* 歌曲技术指标元数据 */}
                     <div className="midi-meta-grid">
-                      <div className="midi-meta-item" title="文件大小">
+                      <div className="midi-meta-item" title={t('midiShow.fileSize')}>
                         <FileText size={12} className="meta-icon" />
                         <span>{item.fileSize}</span>
                       </div>
-                      <div className="midi-meta-item" title="播放时长">
+                      <div className="midi-meta-item" title={t('midiShow.duration')}>
                         <Clock size={12} className="meta-icon" />
                         <span>{item.duration}</span>
                       </div>
-                      <div className="midi-meta-item" title="包含乐器数">
+                      <div className="midi-meta-item" title={t('midiShow.instrumentsTitle')}>
                         <Music size={12} className="meta-icon" />
-                        <span>{item.instrumentsCount} 个乐器</span>
+                        <span>{item.instrumentsCount} {t('midiShow.instruments')}</span>
                       </div>
-                      <div className="midi-meta-item" title="音轨数量">
+                      <div className="midi-meta-item" title={t('midiShow.tracksTitle')}>
                         <Layers size={12} className="meta-icon" />
-                        <span>{item.tracksCount} 音轨</span>
+                        <span>{item.tracksCount} {t('midiShow.tracks')}</span>
                       </div>
                     </div>
                   </div>
@@ -426,21 +440,21 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
                     {downloadState === 'idle' && (
                       <button className="import-action-btn" onClick={() => handleDownload(item)}>
                         <Download size={14} />
-                        <span>导入</span>
+                        <span>{t('midiShow.import')}</span>
                       </button>
                     )}
                     
                     {downloadState === 'loading' && (
                       <button className="import-action-btn loading" disabled>
                         <RefreshCw size={14} className="spinner-icon" />
-                        <span>正在下载...</span>
+                        <span>{t('midiShow.downloading')}</span>
                       </button>
                     )}
                     
                     {downloadState === 'success' && (
                       <button className="import-action-btn success" disabled>
                         <Check size={14} />
-                        <span>已载入曲库</span>
+                        <span>{t('midiShow.imported')}</span>
                       </button>
                     )}
                   </div>
@@ -460,7 +474,7 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
               disabled={currentPage <= 1}
               className="pagination-arrow-btn"
             >
-              &lt; 上一页
+              {t('midiShow.prevPage')}
             </button>
             
             <div className="pagination-numbers">
@@ -480,7 +494,7 @@ export function MidiShowBrowser({ url, onClose }: MidiShowBrowserProps): React.J
               disabled={currentPage >= totalPages}
               className="pagination-arrow-btn"
             >
-              下一页 &gt;
+              {t('midiShow.nextPage')}
             </button>
           </div>
         </div>

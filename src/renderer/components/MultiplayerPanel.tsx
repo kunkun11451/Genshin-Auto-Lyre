@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Users, Wifi, LogOut, Play, Square, User, Volume2, CheckCircle2, CircleDashed, ChevronDown, Check, Ban, Plus, LogIn } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
+import { useTranslation } from 'react-i18next'
 import { networkManager, NetworkRole, NetworkPlayer } from '../core/network-manager'
 import { mapNotes, MappedNote } from '../core/note-mapper'
 import { audioPreview, INSTRUMENT_DIR_MAP } from '../core/audio-preview'
@@ -95,6 +96,7 @@ function GlobalProgressLine({ totalDurationMs }: { totalDurationMs: number }) {
 }
 
 export function MultiplayerPanel(): React.JSX.Element {
+  const { t } = useTranslation()
   const parsedMidi = useAppStore(state => state.parsedMidi)
   const clientTrackData = useAppStore(state => state.clientTrackData)
   const clientTotalDurationMs = useAppStore(state => state.clientTotalDurationMs)
@@ -306,15 +308,15 @@ export function MultiplayerPanel(): React.JSX.Element {
       setPlayers([...newPlayers])
     }
     networkManager.events.onError = (err) => {
-      showTempMsg(`错误: ${err.message}`, 4000)
+      showTempMsg(t('multiplayer.errorMsg', { msg: err.message }), 4000)
       setIsConnecting(false)
     }
     networkManager.events.onConnected = () => {
-      showTempMsg('已连接到主机', 2500)
+      showTempMsg(t('multiplayer.connectedToHost'), 2500)
       setIsConnecting(false)
     }
     networkManager.events.onDisconnected = () => {
-      showTempMsg('连接已断开', 3000)
+      showTempMsg(t('multiplayer.connectionLost'), 3000)
       setRole('none')
       setMultiplayerCombinedTracks({})
       useAppStore.getState().setMultiplayerRole('none')
@@ -333,14 +335,14 @@ export function MultiplayerPanel(): React.JSX.Element {
 
   const handleCreateRoom = async () => {
     if (!playerName.trim()) {
-      showTempMsg('请先设置您的昵称')
+      showTempMsg(t('multiplayer.setNicknameFirst'))
       return
     }
     setIsConnecting(true)
-    setStatusMsg('正在创建房间...')
+    setStatusMsg(t('multiplayer.creatingRoom'))
     try {
       await networkManager.createRoom(playerName.trim())
-      showTempMsg('房间创建成功')
+      showTempMsg(t('multiplayer.roomCreated'))
     } catch (err) { }
     finally {
       setIsConnecting(false)
@@ -349,25 +351,25 @@ export function MultiplayerPanel(): React.JSX.Element {
 
   const handleCreateDevRoom = () => {
     if (!playerName.trim()) {
-      showTempMsg('请先设置您的昵称')
+      showTempMsg(t('multiplayer.setNicknameFirst'))
       return
     }
     try {
       networkManager.createDevRoom()
-      showTempMsg('单机模拟房间已创建')
+      showTempMsg(t('multiplayer.devRoomCreated'))
     } catch (err: any) {
-      showTempMsg(`创建失败: ${err.message}`, 4000)
+      showTempMsg(t('multiplayer.createFailed', { msg: err.message }), 4000)
     }
   }
 
   const handleJoinRoom = async () => {
     if (!playerName.trim()) {
-      showTempMsg('请先设置您的昵称')
+      showTempMsg(t('multiplayer.setNicknameFirst'))
       return
     }
     if (!joinId.trim()) return
     setIsConnecting(true)
-    setStatusMsg('正在连接...')
+    setStatusMsg(t('multiplayer.connecting'))
     try {
       await networkManager.joinRoom(joinId.trim().toUpperCase(), playerName.trim())
     } catch (err) { }
@@ -544,7 +546,7 @@ export function MultiplayerPanel(): React.JSX.Element {
     if (overviewNotes.length === 0) return
     overviewNotes.sort((a, b) => a.startMs - b.startMs)
 
-    setStatusMsg('正在加载合奏试听音色...')
+    setStatusMsg(t('multiplayer.loadingPreview'))
     try {
       await Promise.all(
         Array.from(requiredInsts).map(instId => audioPreview.getOrCreateSampler(instId))
@@ -553,7 +555,7 @@ export function MultiplayerPanel(): React.JSX.Element {
       startOverviewPreview(overviewNotes, 0)
     } catch (e) {
       console.error(e)
-      showTempMsg('试听音色加载失败', 3000)
+      showTempMsg(t('multiplayer.previewLoadFailed'), 3000)
     }
   }
 
@@ -562,12 +564,12 @@ export function MultiplayerPanel(): React.JSX.Element {
       stopPreview()
     } else {
       if (instrumentId) {
-        setStatusMsg('正在加载试听音色...')
+        setStatusMsg(t('multiplayer.loadingSingle'))
         try {
           await audioPreview.getOrCreateSampler(instrumentId)
           setStatusMsg('')
         } catch (e) {
-          showTempMsg('试听音色加载失败', 3000)
+          showTempMsg(t('multiplayer.previewLoadFailed'), 3000)
           return
         }
       }
@@ -625,12 +627,12 @@ export function MultiplayerPanel(): React.JSX.Element {
         const latestNotes = playerCombinedTracks[pid] || []
         const instId = getInstrumentForPlayer(pid)
 
-        setStatusMsg('正在加载新音色...')
+        setStatusMsg(t('multiplayer.loadingNew'))
         try {
           await audioPreview.getOrCreateSampler(instId)
           setStatusMsg('')
         } catch (e) {
-          showTempMsg('音色加载失败', 3000)
+          showTempMsg(t('multiplayer.loadFailed'), 3000)
           return
         }
 
@@ -652,14 +654,14 @@ export function MultiplayerPanel(): React.JSX.Element {
         })
         overviewNotes.sort((a, b) => a.startMs - b.startMs)
 
-        setStatusMsg('正在加载新音色...')
+        setStatusMsg(t('multiplayer.loadingNew'))
         try {
           await Promise.all(
             Array.from(requiredInsts).map(instId => audioPreview.getOrCreateSampler(instId))
           )
           setStatusMsg('')
         } catch (e) {
-          showTempMsg('音色加载失败', 3000)
+          showTempMsg(t('multiplayer.loadFailed'), 3000)
           return
         }
 
@@ -684,7 +686,7 @@ export function MultiplayerPanel(): React.JSX.Element {
         {role === 'none' ? (
           <>
             <div className="mp-header">
-              <h2><Users size={24} /> 多人联机合奏</h2>
+              <h2><Users size={24} /> {t('multiplayer.title')}</h2>
             </div>
 
             <div className="mp-lobby">
@@ -697,19 +699,19 @@ export function MultiplayerPanel(): React.JSX.Element {
                 />
               </div>
               <div className="mp-lobby-intro" style={{ textAlign: 'center', fontSize: '13px', color: 'var(--text-dim)', lineHeight: '1.6', marginBottom: '4px', padding: '0 10px' }}>
-                多人合奏模式通过P2P连接至多4名玩家进行同步演奏。
-                使用创建房间作为主机来分配MIDI歌曲的音轨、选择乐器和同步开始信号。
-                使用房间码作为客机加入房间并等待主机安排后开始合奏。
+                {t('multiplayer.lobbyIntro').split('\n').map((line, i) => (
+                  <span key={i}>{line}<br /></span>
+                ))}
               </div>
 
               <div className="mp-card" style={{ paddingBottom: 16 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><User size={16} /> 玩家昵称</h3>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><User size={16} /> {t('multiplayer.nickname')}</h3>
                 <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>
-                  请设置一个名字，方便小伙伴在分配音轨时找到您。
+                  {t('multiplayer.nicknameHint')}
                 </p>
                 <input
                   className="mp-input"
-                  placeholder="输入名称"
+                  placeholder={t('multiplayer.nicknamePlaceholder')}
                   value={playerName}
                   onChange={e => setPlayerName(e.target.value)}
                   maxLength={10}
@@ -717,34 +719,34 @@ export function MultiplayerPanel(): React.JSX.Element {
               </div>
 
               <div className="mp-card">
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Plus size={16} /> 创建房间</h3>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Plus size={16} /> {t('multiplayer.createRoom')}</h3>
                 <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>
-                  作为主机创建一个房间，选择MIDI并分配音轨。
+                  {t('multiplayer.createRoomHint')}
                 </p>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                   <button className="mp-btn host-btn" style={{ flex: 1 }} onClick={handleCreateRoom} disabled={isConnecting}>
-                    {isConnecting && statusMsg.includes('创建') ? '创建中...' : '创建房间'}
+                    {isConnecting && statusMsg.includes(t('multiplayer.creating').replace('...', '')) ? t('multiplayer.creating') : t('multiplayer.createRoom')}
                   </button>
                   <button className="mp-btn host-btn" style={{ flex: 1 }} onClick={handleCreateDevRoom} disabled={isConnecting}>
-                    单机模拟
+                    {t('multiplayer.soloSimulate')}
                   </button>
                 </div>
               </div>
 
               <div className="mp-card">
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><LogIn size={16} /> 加入房间</h3>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><LogIn size={16} /> {t('multiplayer.joinRoom')}</h3>
                 <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>
-                  输入主机提供的房间号，加入合奏。
+                  {t('multiplayer.joinRoomHint')}
                 </p>
                 <input
                   className="mp-input"
-                  placeholder="输入 6 位房间号"
+                  placeholder={t('multiplayer.joinPlaceholder')}
                   value={joinId}
                   onChange={e => setJoinId(e.target.value)}
                   maxLength={6}
                 />
                 <button className="mp-btn" onClick={handleJoinRoom} disabled={!joinId || isConnecting}>
-                  {isConnecting && statusMsg.includes('连接') ? '连接中...' : '加入房间'}
+                  {isConnecting && statusMsg.includes(t('multiplayer.joining').replace('...', '')) ? t('multiplayer.joining') : t('multiplayer.joinRoom')}
                 </button>
               </div>
             </div>
@@ -754,14 +756,14 @@ export function MultiplayerPanel(): React.JSX.Element {
             {role === 'host' ? (
               <div className="mp-header-fusion">
                 <div className="mp-header-left">
-                  <h2><Users size={20} /> 主机房间</h2>
+                  <h2><Users size={20} /> {t('multiplayer.hostRoom')}</h2>
                   <div className="mp-room-dropdown-container" ref={dropdownRef}>
                     <div
                       className={`mp-room-badge ${dropdownOpen ? 'dropdown-active' : ''}`}
                       onClick={() => setDropdownOpen(!dropdownOpen)}
-                      title="点击查看连接玩家 / 复制房间号"
+                      title={t('multiplayer.clickToViewPlayers')}
                     >
-                      <span className="badge-label">房间号</span>
+                      <span className="badge-label">{t('multiplayer.roomCodeLabel')}</span>
                       <span className="badge-value">{myId}</span>
                       <ChevronDown size={14} className="badge-arrow" style={{ marginRight: 8, opacity: 0.6 }} />
                     </div>
@@ -769,16 +771,16 @@ export function MultiplayerPanel(): React.JSX.Element {
                       <div className={`mp-room-dropdown-menu ${isDropdownClosing ? 'closing' : ''}`}>
                         <div className="mp-dropdown-header" onClick={() => {
                           navigator.clipboard.writeText(myId)
-                          showTempMsg('房间号已复制到剪贴板')
+                          showTempMsg(t('multiplayer.copiedToClipboard'))
                         }}>
-                          <span>房间号: <strong>{myId}</strong></span>
-                          <span className="copy-tip">(点击复制)</span>
+                          <span>{t('multiplayer.roomCodeLabel')}: <strong>{myId}</strong></span>
+                          <span className="copy-tip">({t('multiplayer.clickToCopy')})</span>
                         </div>
                         <div className="mp-dropdown-divider"></div>
                         <div className="mp-dropdown-players">
                           <div className="mp-dropdown-player-item host">
                             <span className="player-p-index">P1</span>
-                            <span className="player-p-name">{playerName || '房主'} <span className="player-role-tag">(主机)</span></span>
+                            <span className="player-p-name">{playerName || t('multiplayer.host')} <span className="player-role-tag">({t('multiplayer.hostTag')})</span></span>
                             <span className="player-p-check ready"><Check size={14} /></span>
                           </div>
                           {Array.from({ length: 3 }).map((_, i) => {
@@ -796,7 +798,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                               return (
                                 <div key={`empty-${pIndex}`} className="mp-dropdown-player-item empty">
                                   <span className="player-p-index">P{pIndex}</span>
-                                  <span className="player-p-name empty">等待加入...</span>
+                                  <span className="player-p-name empty">{t('multiplayer.waiting')}</span>
                                   <span className="player-p-check hidden"><Check size={14} /></span>
                                 </div>
                               )
@@ -810,24 +812,24 @@ export function MultiplayerPanel(): React.JSX.Element {
 
                 <div className="mp-header-right">
                   <button className="mp-btn disconnect-btn" onClick={handleDisconnect}>
-                    <LogOut size={14} /> 断开连接
+                    <LogOut size={14} /> {t('multiplayer.disconnect')}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="mp-header-fusion">
                 <div className="mp-header-left">
-                  <h2><Users size={20} /> 客机房间</h2>
+                  <h2><Users size={20} /> {t('multiplayer.clientRoom')}</h2>
                   {joinId && (
                     <div
                       className="mp-room-badge readonly"
-                      title="点击复制房间号"
+                      title={t('multiplayer.clickToCopy')}
                       onClick={() => {
                         navigator.clipboard.writeText(joinId)
-                        showTempMsg('房间号已复制到剪贴板')
+                        showTempMsg(t('multiplayer.copiedToClipboard'))
                       }}
                     >
-                      <span className="badge-label">房间号</span>
+                      <span className="badge-label">{t('multiplayer.roomCodeLabel')}</span>
                       <span className="badge-value">{joinId}</span>
                     </div>
                   )}
@@ -835,7 +837,7 @@ export function MultiplayerPanel(): React.JSX.Element {
 
                 <div className="mp-header-right">
                   <button className="mp-btn disconnect-btn" onClick={handleDisconnect}>
-                    <LogOut size={14} /> 断开连接
+                    <LogOut size={14} /> {t('multiplayer.disconnect')}
                   </button>
                 </div>
               </div>
@@ -848,7 +850,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div className="mp-status-dot connected"></div>
                     <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      已成功连接合奏房间。{Object.keys(multiplayerCombinedTracks).length > 0 ? '合奏音轨已下发。' : '正在等待主机端选择MIDI并分配音轨...'}
+                      {Object.keys(multiplayerCombinedTracks).length > 0 ? t('multiplayer.joinedReady') : t('multiplayer.joinedWaiting')}
                     </span>
                   </div>
                 </div>
@@ -858,23 +860,23 @@ export function MultiplayerPanel(): React.JSX.Element {
               {role === 'client' && (
                 <div className="mp-track-list">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '16px' }}>各玩家声部合并预览</h3>
+                    <h3 style={{ margin: 0, fontSize: '16px' }}>{t('multiplayer.allTracksPreview')}</h3>
                     <button
                       className={`mp-btn ${previewTrackIdx === 'all-overview' ? 'primary' : ''}`}
                       style={{ padding: '4px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
                       onClick={handleOverviewPreview}
                       disabled={Object.keys(playerCombinedTracks).length === 0 || playbackState !== 'idle' || isClientReady}
-                      title={previewTrackIdx === 'all-overview' ? '停止整体试听' : '整体试听'}
+                      title={previewTrackIdx === 'all-overview' ? t('multiplayer.stop') : t('multiplayer.allPreview')}
                     >
                       {previewTrackIdx === 'all-overview' ? <Square size={14} /> : <Volume2 size={14} />}
-                      <span>{previewTrackIdx === 'all-overview' ? '停止试听' : '整体试听'}</span>
+                      <span>{previewTrackIdx === 'all-overview' ? t('multiplayer.stop') : t('multiplayer.allPreview')}</span>
                     </button>
                   </div>
 
                   <div style={{ position: 'relative' }}>
                     {Object.keys(playerCombinedTracks).length === 0 ? (
                       <div className="mp-empty-tracks-placeholder">
-                        暂无分配的合奏音轨，等待房主选择 MIDI 歌曲并分配乐器...
+                        {t('multiplayer.noTracks')}
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -884,8 +886,8 @@ export function MultiplayerPanel(): React.JSX.Element {
                           const player = isMe ? null : (isHost ? null : players.find(p => p.id === pid))
 
                           const nameText = isMe
-                            ? (playerName || '我')
-                            : (isHost ? (multiplayerHostName || '房主') : (player ? player.name : `玩家 ${pid.substring(0, 4)}`))
+                            ? (playerName || t('multiplayer.me'))
+                            : (isHost ? (multiplayerHostName || t('multiplayer.host')) : (player ? player.name : `Player ${pid.substring(0, 4)}`))
 
                           const instId = getInstrumentForPlayer(pid)
 
@@ -895,13 +897,13 @@ export function MultiplayerPanel(): React.JSX.Element {
                                 <div className="mp-track-info">
                                   <div className="mp-track-name" style={{ fontSize: 13, color: isMe ? 'var(--primary)' : 'var(--text-secondary)' }}>
                                     {nameText}
-                                    {isMe && <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginLeft: '4px' }}>(我)</span>}
-                                    {isHost && <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginLeft: '4px' }}>(主机)</span>}
+                                    {isMe && <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginLeft: '4px' }}>({t('multiplayer.meTag')})</span>}
+                                    {isHost && <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginLeft: '4px' }}>({t('multiplayer.hostTag')})</span>}
                                   </div>
                                   <div className="mp-track-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
-                                    <span>共 {notes.length} 个音符</span>
+                                    <span>{t('multiplayer.noteCount', { count: notes.length })}</span>
                                     <span style={{ fontSize: '11px', color: 'var(--text-dim)', padding: '1px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}>
-                                      乐器：{INSTRUMENT_DIR_MAP[instId] || '未知'}
+                                      {t('multiplayer.instrument')}: {INSTRUMENT_DIR_MAP[instId] || t('multiplayer.unknown')}
                                     </span>
                                   </div>
                                 </div>
@@ -911,7 +913,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                                   style={{ padding: '6px 10px' }}
                                   onClick={() => handlePreviewTrack(`overview-${pid}`, notes, instId)}
                                   disabled={notes.length === 0 || playbackState !== 'idle' || isClientReady}
-                                  title={previewTrackIdx === `overview-${pid}` ? '停止试听' : '试听'}
+                                  title={previewTrackIdx === `overview-${pid}` ? t('multiplayer.stop') : t('multiplayer.preview')}
                                 >
                                   {previewTrackIdx === `overview-${pid}` ? <Square size={16} /> : <Play size={16} />}
                                 </button>
@@ -974,25 +976,25 @@ export function MultiplayerPanel(): React.JSX.Element {
                           }}
                         >
                           {isClientReady ? <CheckCircle2 size={18} /> : <CircleDashed size={18} />}
-                          <span>{isClientReady ? '已准备就绪' : '准备就绪'}</span>
+                          <span>{isClientReady ? t('multiplayer.readyStatus') : t('multiplayer.ready')}</span>
                         </button>
 
                         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', marginTop: 12, lineHeight: '1.6', margin: '12px 0 0 0' }}>
                           {isClientReady ? (
                             <>
                               {showReadyPrompt ? (
-                                <>已准备好 <strong style={{ color: '#10b981' }}>[{INSTRUMENT_DIR_MAP[myInstrument] || '风物之诗琴'}]</strong>，</>
+                                <>{t('multiplayer.readyPromptInstrument', { inst: t(`instruments.${myInstrument}`) || t('instruments.Lyre') })}</>
                               ) : (
-                                <>已准备就绪，</>
+                                <>{t('multiplayer.readyPrompt')}</>
                               )}
-                              请回到游戏等待主机端开始合奏
+                              {t('multiplayer.waitForHost')}
                             </>
                           ) : (
                             <>
                               {showReadyPrompt && (
-                                <>请准备好 <strong style={{ color: 'var(--text-primary)' }}>[{INSTRUMENT_DIR_MAP[myInstrument] || '风物之诗琴'}]</strong>，</>
+                                <>{t('multiplayer.selectInstrumentPrompt', { inst: t(`instruments.${myInstrument}`) || t('instruments.Lyre') })}</>
                               )}
-                              点击“准备就绪”并回到游戏等待主机端开始合奏
+                              {t('multiplayer.clickReadyPrompt')}
                             </>
                           )}
                         </p>
@@ -1009,30 +1011,30 @@ export function MultiplayerPanel(): React.JSX.Element {
                   <div className="mp-layout-column mp-preview-column">
                     <div className="mp-track-list" style={{ paddingBottom: 16, borderBottom: isMaximized ? 'none' : '1px solid var(--glass-border)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <h3 style={{ margin: 0, fontSize: '16px' }}>各玩家声部合并预览</h3>
+                        <h3 style={{ margin: 0, fontSize: '16px' }}>{t('multiplayer.allTracksPreview')}</h3>
                         <button
                           className={`mp-btn ${previewTrackIdx === 'all-overview' ? 'primary' : ''}`}
                           style={{ padding: '4px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
                           onClick={handleOverviewPreview}
                           disabled={playbackState !== 'idle'}
-                          title={previewTrackIdx === 'all-overview' ? '停止整体试听' : '整体试听'}
+                          title={previewTrackIdx === 'all-overview' ? t('multiplayer.stop') : t('multiplayer.allPreview')}
                         >
                           {previewTrackIdx === 'all-overview' ? <Square size={14} /> : <Volume2 size={14} />}
-                          <span>{previewTrackIdx === 'all-overview' ? '停止试听' : '整体试听'}</span>
+                          <span>{previewTrackIdx === 'all-overview' ? t('multiplayer.stop') : t('multiplayer.allPreview')}</span>
                         </button>
                       </div>
 
                       <div style={{ position: 'relative' }}>
                         {Object.keys(playerCombinedTracks).length === 0 ? (
                           <div className="mp-empty-tracks-placeholder">
-                            暂无分配的合奏音轨，请在下方分配 MIDI 轨道给玩家...
+                            {t('multiplayer.noAssignedTracks')}
                           </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {Object.entries(playerCombinedTracks).map(([pid, notes]) => {
                               const isMe = pid === 'me'
                               const player = isMe ? null : players.find(p => p.id === pid)
-                              const nameText = isMe ? (playerName || '房主') : (player ? player.name : `玩家 ${pid.substring(0, 4)}`)
+                              const nameText = isMe ? (playerName || t('multiplayer.host')) : (player ? player.name : `${t('multiplayer.player')} ${pid.substring(0, 4)}`)
 
                               return (
                                 <div key={`overview-${pid}`} className="mp-track-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, padding: '12px' }}>
@@ -1040,23 +1042,23 @@ export function MultiplayerPanel(): React.JSX.Element {
                                     <div className="mp-track-info">
                                       <div className="mp-track-name" style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                                         {nameText}
-                                        {isMe && <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginLeft: '4px' }}>(我)</span>}
+                                        {isMe && <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginLeft: '4px' }}>({t('multiplayer.meTag')})</span>}
                                       </div>
                                       <div className="mp-track-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
-                                        <span>共 {notes.length} 个音符</span>
+                                        <span>{t('multiplayer.noteCount', { count: notes.length })}</span>
 
                                         {/* 只有主机能够为所有人配置乐器/试听，客机端无需展示配置 */}
                                         {role === 'host' && (
                                           <div className="mp-inst-btn-group" onClick={e => e.stopPropagation()}>
                                             {[
-                                              { id: 'Lyre', name: '风物之诗琴' },
-                                              { id: 'Zither', name: '镜花之琴' },
-                                              { id: 'Vintage-Lyre', name: '老旧的诗琴' },
-                                              { id: 'Horn', name: '晚风圆号' },
-                                              { id: 'Ukulele', name: '悠可琴' },
-                                              { id: 'LingeringEuphonia', name: '「余音」' },
-                                              { id: 'LeapingSpiritPiano', name: '跃律琴' },
-                                              { id: 'HarmonicKey', name: '谐律键琴' }
+                                              { id: 'Lyre' },
+                                              { id: 'Zither' },
+                                              { id: 'Vintage-Lyre' },
+                                              { id: 'Horn' },
+                                              { id: 'Ukulele' },
+                                              { id: 'LingeringEuphonia' },
+                                              { id: 'LeapingSpiritPiano' },
+                                              { id: 'HarmonicKey' }
                                             ].map(inst => {
                                               const currentInst = isMe ? audioPreviewInstrument : (multiplayerPreviewInstruments[pid] || 'Lyre')
                                               const isActive = currentInst === inst.id
@@ -1071,10 +1073,10 @@ export function MultiplayerPanel(): React.JSX.Element {
                                                       setMultiplayerPreviewInstrument(pid, inst.id)
                                                     }
                                                   }}
-                                                  title={inst.name}
+                                                  title={t(`instruments.${inst.id}`)}
                                                   disabled={playbackState !== 'idle'}
                                                 >
-                                                  <img src={`img/${inst.id}.png`} alt={inst.name} />
+                                                  <img src={`img/${inst.id}.png`} alt={t(`instruments.${inst.id}`)} />
                                                 </button>
                                               )
                                             })}
@@ -1091,7 +1093,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                                         handlePreviewTrack(`overview-${pid}`, notes, instId)
                                       }}
                                       disabled={notes.length === 0 || playbackState !== 'idle'}
-                                      title={previewTrackIdx === `overview-${pid}` ? '停止试听' : '试听'}
+                                      title={previewTrackIdx === `overview-${pid}` ? t('multiplayer.stop') : t('multiplayer.preview')}
                                     >
                                       {previewTrackIdx === `overview-${pid}` ? <Square size={16} /> : <Play size={16} />}
                                     </button>
@@ -1139,7 +1141,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                   {/* 分配列表 */}
                   <div className="mp-layout-column mp-assign-column">
                     <div className="mp-track-list">
-                      <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>MIDI 轨道分配列表</h3>
+                      <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>{t('multiplayer.midiTrackAssignment')}</h3>
                       {parsedMidi.tracks.map((trackNotes, idx) => {
                         const noteCount = trackNotes.length
                         const currentAssign = assignments[idx] || 'none'
@@ -1147,11 +1149,11 @@ export function MultiplayerPanel(): React.JSX.Element {
 
                         // 乐器与轨道名称提取
                         const meta = parsedMidi.trackMeta?.[idx]
-                        let trackDisplay = `轨道 ${idx + 1}`
+                        let trackDisplay = t('multiplayer.trackLabel', { num: idx + 1 }) as string
                         if (meta) {
                           const parts = []
                           if (meta.name && meta.name.trim() !== `Track ${idx}`) parts.push(meta.name)
-                          if (meta.instrument && meta.instrument !== 'acoustic grand piano') parts.push(meta.instrument) // 默认是钢琴的话可以省略，也可以显示
+                          if (meta.instrument && meta.instrument !== 'acoustic grand piano') parts.push(meta.instrument)
 
                           if (parts.length > 0) {
                             trackDisplay += ` - ${parts.join(' / ')}`
@@ -1167,7 +1169,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                                 <div className="mp-track-name" style={{ fontSize: 13 }} title={trackDisplay}>
                                   {trackDisplay.length > 30 ? trackDisplay.substring(0, 30) + '...' : trackDisplay}
                                 </div>
-                                <div className="mp-track-meta">原始音符: {noteCount} | 映射后: {mappedTrack.length}</div>
+                                <div className="mp-track-meta">{t('multiplayer.rawNotes', { raw: noteCount, mapped: mappedTrack.length })}</div>
                               </div>
 
                               <div className="mp-track-assign" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -1176,7 +1178,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                                     className={`mp-assign-btn ${currentAssign === 'me' ? 'active' : ''}`}
                                     onClick={() => handleAssign(idx, 'me')}
                                     disabled={playbackState !== 'idle'}
-                                    title={`${playerName || '房主'} (我)`}
+                                    title={`${playerName || t('multiplayer.host')} (${t('multiplayer.meTag')})`}
                                   >
                                     P1
                                   </button>
@@ -1184,7 +1186,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                                     className={`mp-assign-btn ${players[0] && currentAssign === players[0].id ? 'active' : ''}`}
                                     onClick={() => players[0] && handleAssign(idx, players[0].id)}
                                     disabled={playbackState !== 'idle' || !players[0]}
-                                    title={players[0] ? players[0].name : '无玩家连接'}
+                                    title={players[0] ? players[0].name : t('multiplayer.noPlayer')}
                                   >
                                     P2
                                   </button>
@@ -1192,7 +1194,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                                     className={`mp-assign-btn ${players[1] && currentAssign === players[1].id ? 'active' : ''}`}
                                     onClick={() => players[1] && handleAssign(idx, players[1].id)}
                                     disabled={playbackState !== 'idle' || !players[1]}
-                                    title={players[1] ? players[1].name : '无玩家连接'}
+                                    title={players[1] ? players[1].name : t('multiplayer.noPlayer')}
                                   >
                                     P3
                                   </button>
@@ -1200,7 +1202,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                                     className={`mp-assign-btn ${players[2] && currentAssign === players[2].id ? 'active' : ''}`}
                                     onClick={() => players[2] && handleAssign(idx, players[2].id)}
                                     disabled={playbackState !== 'idle' || !players[2]}
-                                    title={players[2] ? players[2].name : '无玩家连接'}
+                                    title={players[2] ? players[2].name : t('multiplayer.noPlayer')}
                                   >
                                     P4
                                   </button>
@@ -1208,7 +1210,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                                     className={`mp-assign-btn ban-btn ${currentAssign === 'none' ? 'active' : ''}`}
                                     onClick={() => handleAssign(idx, 'none')}
                                     disabled={playbackState !== 'idle'}
-                                    title="不分配"
+                                    title={t('multiplayer.noAssign')}
                                   >
                                     <Ban size={12} />
                                   </button>
@@ -1222,7 +1224,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                                     handlePreviewTrack(idx, mappedTrack, instId)
                                   }}
                                   disabled={playbackState !== 'idle'}
-                                  title={previewTrackIdx === idx ? '停止试听' : '试听'}
+                                  title={previewTrackIdx === idx ? t('multiplayer.stop') : t('multiplayer.preview')}
                                 >
                                   {previewTrackIdx === idx ? <Square size={16} /> : <Play size={16} />}
                                 </button>
@@ -1250,7 +1252,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                   </div>
                 </div>
                 <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-dim)', marginTop: '12px' }}>
-                  分配完成并等待所有玩家准备后，点击窗口底部的播放按钮可同步开始信号进行合奏
+                  {t('multiplayer.assignComplete')}
                 </div>
               </>
             )}
@@ -1259,7 +1261,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                 <div className="empty-midi-splash" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <div className="empty-splash-logo-container">
                     <img src={startImg} className="empty-splash-logo" alt="Start Splash" draggable="false" />
-                    <div className="empty-splash-text">选择一首 MIDI 音乐开始演奏</div>
+                    <div className="empty-splash-text">{t('multiplayer.selectMidiToPlay')}</div>
                   </div>
                 </div>
               )}

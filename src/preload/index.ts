@@ -91,7 +91,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** 发送后台静默下载请求 */
   downloadCloudMidi: (url: string) => ipcRenderer.invoke('midi:downloadCloudMidi', url),
   /** 打开登录小窗口进行登录 */
-  openLoginWindow: () => ipcRenderer.send('midi:openLogin'),
+  openLoginWindow: (lang?: string) => ipcRenderer.send('midi:openLogin', lang),
   /** 监听登录成功事件 */
   onLoginSuccess: (callback: () => void) => {
     const handler = () => callback()

@@ -12,10 +12,12 @@
   },
   "dependencies": {
     "@tonejs/midi": "^2.0.28",
+    "i18next": "^26.3.1",
     "lucide-react": "^1.17.0",
     "peerjs": "^1.5.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-i18next": "^17.0.8",
     "tone": "^15.1.22",
     "zustand": "^5.0.0"
   },

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Clock, FileText, Download, Check, RefreshCw, ChevronLeft } from 'lucide-react'
 import searchGif from '../../../resources/search.gif'
+import { useTranslation } from 'react-i18next'
 
 interface MidiShowAuthorProps {
   authorName: string
@@ -31,6 +32,7 @@ interface PageItem {
 }
 
 export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload }: MidiShowAuthorProps): React.JSX.Element {
+  const { t, i18n } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -66,12 +68,19 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
       }
     }
 
-    const targetUrl = `https://www.midishow.com/u/${encodeURIComponent(authorName)}?page=${page}`
+    const baseUrl = (() => {
+      const lang = i18n.language || 'zh'
+      if (lang.startsWith('en')) return 'https://www.midishow.com/en'
+      if (lang === 'zh-TW' || lang === 'yue') return 'https://www.midishow.com/zh-tw'
+      return 'https://www.midishow.com'
+    })()
+
+    const targetUrl = `${baseUrl}/u/${encodeURIComponent(authorName)}?page=${page}`
     
     try {
       const response = await window.electronAPI.fetchCloudSearch(targetUrl)
       if (!response.success || !response.html) {
-        throw new Error(response.error || '无法获取在线数据，请检查网络连接。')
+        throw new Error(response.error || t('midiShow.authorNetworkError'))
       }
 
       const parsed = parseAuthorHtml(response.html)
@@ -85,7 +94,7 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
       }
     } catch (err: any) {
       console.error('Fetch author data error:', err)
-      setError(err.message || '抓取作者数据失败')
+      setError(err.message || t('midiShow.authorFetchFailed'))
     } finally {
       setLoading(false)
     }
@@ -99,7 +108,7 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
     let profile: AuthorProfile = {
       name: authorName,
       avatar: '',
-      bio: '暂无简介',
+      bio: t('midiShow.noBio'),
       midiCount: '--',
       viewCount: '--'
     }
@@ -140,12 +149,18 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
       
       const aLink = div.querySelector('a[target="ms_p"]')
       const relativeUrl = aLink ? aLink.getAttribute('href') : ''
+      const baseUrl = (() => {
+        const lang = i18n.language || 'zh'
+        if (lang.startsWith('en')) return 'https://www.midishow.com/en'
+        if (lang === 'zh-TW' || lang === 'yue') return 'https://www.midishow.com/zh-tw'
+        return 'https://www.midishow.com'
+      })()
       const fullUrl = relativeUrl 
         ? (relativeUrl.startsWith('http') ? relativeUrl : `https://www.midishow.com${relativeUrl}`)
-        : `https://www.midishow.com/midi/${id}.html`
+        : `${baseUrl}/midi/${id}.html`
         
       const h4 = div.querySelector('h4')
-      const titleHtml = h4 ? h4.textContent?.trim() || '未命名歌曲' : '未命名歌曲'
+      const titleHtml = h4 ? h4.textContent?.trim() || t('midiShow.unnamedSong') : t('midiShow.unnamedSong')
       
       let fileSize = '--'
       let duration = '--'
@@ -212,8 +227,8 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
       <div className="cloud-search-body">
         {loading && !profile && (
           <div className="cloud-search-status-container">
-            <img src={searchGif} className="cloud-search-loading-gif" alt="正在加载..." />
-            <div className="loading-text">正在调取作者主页...</div>
+            <img src={searchGif} className="cloud-search-loading-gif" alt="Loading..." />
+            <div className="loading-text">{t('midiShow.loadingAuthor')}</div>
           </div>
         )}
 
@@ -221,8 +236,8 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
           <>
             {/* 作者资料卡 */}
             <div className="author-profile-card">
-              <button onClick={onBack} className="author-back-btn" title="返回搜索结果">
-                <ChevronLeft size={16} /> 返回
+              <button onClick={onBack} className="author-back-btn" title={t('midiShow.backTitle')}>
+                <ChevronLeft size={16} /> {t('midiShow.back')}
               </button>
               
               <div className="author-profile-avatar-container">
@@ -236,7 +251,7 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
               <div className="author-profile-stats">
                 <div className="author-stat-item">
                   <span className="stat-value">{profile.midiCount}</span>
-                  <span className="stat-label">首 MIDI</span>
+                  <span className="stat-label">{t('midiShow.midiUnit')}</span>
                 </div>
               </div>
               {profile.bio && (
@@ -250,7 +265,7 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
 
             {/* 作品列表 */}
             <div className="author-works-header" ref={worksHeaderRef}>
-              <h3>TA 的全部作品</h3>
+              <h3>{t('midiShow.authorWorks')}</h3>
             </div>
 
             <div className="midi-cards-container">
@@ -264,19 +279,19 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
                       </div>
                       
                       <div className="midi-meta-grid">
-                        <div className="midi-meta-item" title="文件大小">
+                        <div className="midi-meta-item" title={t('midiShow.fileSize')}>
                           <FileText size={12} className="meta-icon" />
                           <span>{item.fileSize}</span>
                         </div>
-                        <div className="midi-meta-item" title="播放时长">
+                        <div className="midi-meta-item" title={t('midiShow.duration')}>
                           <Clock size={12} className="meta-icon" />
                           <span>{item.duration}</span>
                         </div>
-                        <div className="midi-meta-item" title="乐器数量">
-                          <span style={{ opacity: 0.5 }}>-- 个乐器</span>
+                        <div className="midi-meta-item" title={t('midiShow.instrumentsTitle')}>
+                          <span style={{ opacity: 0.5 }}>-- {t('midiShow.instruments')}</span>
                         </div>
-                        <div className="midi-meta-item" title="音轨数量">
-                          <span style={{ opacity: 0.5 }}>-- 音轨</span>
+                        <div className="midi-meta-item" title={t('midiShow.tracksTitle')}>
+                          <span style={{ opacity: 0.5 }}>-- {t('midiShow.tracks')}</span>
                         </div>
                       </div>
                     </div>
@@ -285,21 +300,21 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
                       {downloadState === 'idle' && (
                         <button className="import-action-btn" onClick={() => onDownload(item)}>
                           <Download size={14} />
-                          <span>导入</span>
+                          <span>{t('midiShow.import')}</span>
                         </button>
                       )}
                       
                       {downloadState === 'loading' && (
                         <button className="import-action-btn loading" disabled>
                           <RefreshCw size={14} className="spinner-icon" />
-                          <span>正在下载...</span>
+                          <span>{t('midiShow.downloading')}</span>
                         </button>
                       )}
                       
                       {downloadState === 'success' && (
                         <button className="import-action-btn success" disabled>
                           <Check size={14} />
-                          <span>已载入曲库</span>
+                          <span>{t('midiShow.imported')}</span>
                         </button>
                       )}
                     </div>
@@ -311,7 +326,7 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
                 <div className="cloud-search-status-container">
                   <div className="empty-card">
                     <div className="empty-icon">📁</div>
-                    <div className="empty-text">该作者暂无上传的 MIDI 作品</div>
+                    <div className="empty-text">{t('midiShow.noAuthorWorks')}</div>
                   </div>
                 </div>
               )}
@@ -326,7 +341,7 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
                     disabled={currentPage <= 1}
                     className="pagination-arrow-btn"
                   >
-                    &lt; 上一页
+                    {t('midiShow.prevPage')}
                   </button>
                   
                   <div className="pagination-numbers">
@@ -346,7 +361,7 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
                     disabled={currentPage >= totalPages}
                     className="pagination-arrow-btn"
                   >
-                    下一页 &gt;
+                    {t('midiShow.nextPage')}
                   </button>
                 </div>
               </div>

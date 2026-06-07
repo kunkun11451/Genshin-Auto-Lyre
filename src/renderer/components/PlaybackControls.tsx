@@ -1,6 +1,7 @@
 import { Play, Pause, Square, SkipBack, SkipForward, Settings, ChevronUp, ChevronDown, Piano, Volume2, MoreHorizontal, Users } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { useTranslation } from 'react-i18next'
 import './PlaybackControls.css'
 import { PlaybackEngine } from '../core/playback-engine'
 import { networkManager } from '../core/network-manager'
@@ -41,6 +42,7 @@ export function PlaybackControls({
   isMiniMode = false,
   delayDurationSec = null
 }: PlaybackControlsProps): React.JSX.Element {
+  const { t } = useTranslation()
 
   const currentTimeMs = useAppStore(state => state.currentTimeMs)
   const progressPercent = totalDurationMs > 0 ? (currentTimeMs / totalDurationMs) * 100 : 0
@@ -114,17 +116,17 @@ export function PlaybackControls({
       <div className="controls-main">
         {/* 左侧：停止 */}
         <div className="controls-left">
-          <button className="btn-icon" onClick={onStop} title="停止" disabled={isPlaybackControlsDisabled}>
+          <button className="btn-icon" onClick={onStop} title={t('controls.stop')} disabled={isPlaybackControlsDisabled}>
             <Square size={16} />
           </button>
         </div>
 
         {/* 中间：上一首、播放、下一首 */}
         <div className="controls-center">
-          <button className="btn-icon" onClick={onPrev} title="上一首" disabled={isPlaybackControlsDisabled}>
+          <button className="btn-icon" onClick={onPrev} title={t('controls.prev')} disabled={isPlaybackControlsDisabled}>
             <SkipBack size={18} />
           </button>
-          <button className="btn-icon play-btn" onClick={onPlayPause} title={isPlaying ? '暂停' : '播放'} disabled={isPlaybackControlsDisabled}>
+          <button className="btn-icon play-btn" onClick={onPlayPause} title={isPlaying ? t('controls.pause') : t('controls.play')} disabled={isPlaybackControlsDisabled}>
             {delayDurationSec !== null && (
               <svg className="play-delay-circle" viewBox="0 0 44 44">
                 <circle
@@ -138,7 +140,7 @@ export function PlaybackControls({
             )}
             {isPlaying ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: '4px' }} />}
           </button>
-          <button className="btn-icon" onClick={onNext} title="下一首" disabled={isPlaybackControlsDisabled}>
+          <button className="btn-icon" onClick={onNext} title={t('controls.next')} disabled={isPlaybackControlsDisabled}>
             <SkipForward size={18} />
           </button>
         </div>
@@ -152,14 +154,14 @@ export function PlaybackControls({
                 <button
                   className="btn-speed"
                   onClick={() => onSpeedChange(Math.min(2.0, speed + 0.1))}
-                  title="加速"
+                  title={t('controls.speedUp')}
                 >
                   <ChevronUp size={14} />
                 </button>
                 <button
                   className="btn-speed"
                   onClick={() => onSpeedChange(Math.max(0.5, speed - 0.1))}
-                  title="减速"
+                  title={t('controls.speedDown')}
                 >
                   <ChevronDown size={14} />
                 </button>
@@ -173,7 +175,7 @@ export function PlaybackControls({
                 e.stopPropagation();
                 setIsQuickSettingsOpen(!isQuickSettingsOpen);
               }}
-              title="快速设置"
+              title={t('controls.quickSettings')}
               style={isMiniMode ? {} : { marginLeft: '16px' }}
             >
               <Settings size={18} />
@@ -184,28 +186,29 @@ export function PlaybackControls({
                 <div className="quick-setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
                   <div className="quick-setting-label">
                     <Piano size={14} />
-                    <span>乐器</span>
+                    <span>{t('controls.popupInstrument')}</span>
                   </div>
                   <select
                     value={audioPreviewInstrument}
                     onChange={(e) => setAudioPreviewInstrument(e.target.value)}
                     disabled={isMultiplayerEnabled}
                   >
-                    <option value="Lyre">风物之诗琴</option>
-                    <option value="Zither">镜花之琴</option>
-                    <option value="Vintage-Lyre">老旧的诗琴</option>
-                    <option value="Horn">晚风圆号</option>
-                    <option value="Ukulele">悠可琴</option>
-                    <option value="LingeringEuphonia">「余音」</option>
-                    <option value="LeapingSpiritPiano">跃律琴</option>
-                    <option value="HarmonicKey">谐律键琴</option>
+                    <option value="Lyre">{t('instruments.Lyre')}</option>
+                    <option value="Zither">{t('instruments.Zither')}</option>
+                    <option value="Vintage-Lyre">{t('instruments.Vintage-Lyre')}</option>
+                    <option value="Horn">{t('instruments.Horn')}</option>
+                    <option value="Ukulele">{t('instruments.Ukulele')}</option>
+                    <option value="LingeringEuphonia">{t('instruments.LingeringEuphonia')}</option>
+                    <option value="LeapingSpiritPiano">{t('instruments.LeapingSpiritPiano')}</option>
+                    <option value="HarmonicKey">{t('instruments.HarmonicKey')}</option>
+                    {/* <option value="DjemDjemDrum">{t('instruments.DjemDjemDrum')}</option> */}
                   </select>
                 </div>
 
                 <div className="quick-setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
                   <div className="quick-setting-label">
                     <Volume2 size={14} />
-                    <span>试听</span>
+                    <span>{t('controls.popupPreview')}</span>
                   </div>
                   <label className="toggle-switch small" style={isMultiplayerEnabled ? { pointerEvents: 'none' } : {}}>
                     <input
@@ -221,7 +224,7 @@ export function PlaybackControls({
                 <div className="quick-setting-item">
                   <div className="quick-setting-label">
                     <Users size={14} />
-                    <span>多人合奏</span>
+                    <span>{t('controls.popupMultiplayer')}</span>
                   </div>
                   <label className="toggle-switch small">
                     <input
@@ -243,7 +246,7 @@ export function PlaybackControls({
                   }}
                 >
                   <MoreHorizontal size={14} />
-                  <span>更多设置...</span>
+                  <span>{t('controls.popupMoreSettings')}</span>
                 </button>
               </div>
             )}

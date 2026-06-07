@@ -36,7 +36,7 @@ interface ElectronAPI {
   onMidiDownloaded: (callback: (path: string) => void) => () => void
   fetchCloudSearch: (url: string) => Promise<{ success: boolean; html?: string; error?: string }>
   downloadCloudMidi: (url: string) => Promise<{ success: boolean; error?: string }>
-  openLoginWindow: () => void
+  openLoginWindow: (lang?: string) => void
   onLoginSuccess: (callback: () => void) => () => void
 
   // 自动更新

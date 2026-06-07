@@ -11,6 +11,7 @@ import type { ParsedMidi, ParsedNote } from '../core/midi-parser'
 import type { MappedNote, MapperOptions, BlackKeyConfig } from '../core/note-mapper'
 import { DEFAULT_BLACK_KEY_CONFIG, DEFAULT_MAPPER_OPTIONS } from '../core/note-mapper'
 import type { PlaybackState } from '../core/playback-engine'
+import i18n, { getSystemLanguage } from '../i18n'
 
 export const INSTRUMENT_TO_MODE: Record<string, 'standard' | 'chord' | 'horn'> = {
   "Lyre": "standard",
@@ -148,6 +149,8 @@ interface AppState {
   setUpdateInfo: (info: any) => void
   setUpdateProgress: (p: number) => void
   setUpdateErrorMsg: (msg: string) => void
+  language: 'zh' | 'zh-TW' | 'yue' | 'en' | 'lzh' | 'miao' | 'ikun'
+  setLanguage: (lang: 'zh' | 'zh-TW' | 'yue' | 'en' | 'lzh' | 'miao' | 'ikun') => void
 }
 
 // ============================================================
@@ -209,6 +212,7 @@ export const useAppStore = create<AppState>()(
       updateProgress: 0,
       updateErrorMsg: '',
       isMaximized: false,
+      language: getSystemLanguage(),
 
       // ===== Actions =====
 
@@ -343,7 +347,11 @@ export const useAppStore = create<AppState>()(
       setUpdateInfo: (info) => set({ updateInfo: info }),
       setUpdateProgress: (p) => set({ updateProgress: p }),
       setUpdateErrorMsg: (msg) => set({ updateErrorMsg: msg }),
-      setIsMaximized: (isMax) => set({ isMaximized: isMax })
+      setIsMaximized: (isMax) => set({ isMaximized: isMax }),
+      setLanguage: (lang) => {
+        set({ language: lang })
+        i18n.changeLanguage(lang)
+      }
     }),
     {
       name: 'genshin-auto-lyre-storage',
@@ -364,7 +372,8 @@ export const useAppStore = create<AppState>()(
         isMultiplayerEnabled: state.isMultiplayerEnabled,
         playerName: state.playerName,
         multiplayerInstrumentModes: state.multiplayerInstrumentModes,
-        multiplayerPreviewInstruments: state.multiplayerPreviewInstruments
+        multiplayerPreviewInstruments: state.multiplayerPreviewInstruments,
+        language: state.language
       })
     }
   )

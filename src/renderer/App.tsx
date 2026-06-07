@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { TitleBar, PianoKeyboard, TrackCanvas, FileList, PlaybackControls, SettingsPanel, MidiShowBrowser, MultiplayerPanel } from './components'
+import i18n from './i18n'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from './store/useAppStore'
+import { useTranslation } from 'react-i18next'
 import { parseMidiBuffer } from './core/midi-parser'
 import { mapNotes } from './core/note-mapper'
 import { PlaybackEngine } from './core/playback-engine'
@@ -10,6 +12,7 @@ import { networkManager } from './core/network-manager'
 import startImg from '../../resources/start.png'
 
 function App(): React.JSX.Element {
+  const { t } = useTranslation()
   // === 状态 ===
   const {
     midiFiles,
@@ -151,6 +154,7 @@ function App(): React.JSX.Element {
     document.documentElement.style.setProperty('--bg-opacity', state.bgOpacity.toString())
     audioPreview.setInstrument(state.audioPreviewInstrument)
     audioPreview.setEnabled(state.audioPreviewEnabled)
+    i18n.changeLanguage(state.language)
 
     // 2. 监听变化
     const unsub = useAppStore.subscribe((newState, prevState) => {
@@ -165,6 +169,9 @@ function App(): React.JSX.Element {
       }
       if (newState.audioPreviewInstrument !== prevState.audioPreviewInstrument) {
         audioPreview.setInstrument(newState.audioPreviewInstrument)
+      }
+      if (newState.language !== prevState.language) {
+        i18n.changeLanguage(newState.language)
       }
     })
 
@@ -819,7 +826,7 @@ function App(): React.JSX.Element {
                 <div className="empty-midi-splash">
                   <div className="empty-splash-logo-container">
                     <img src={startImg} className="empty-splash-logo" alt="Start Splash" draggable="false" />
-                    <div className="empty-splash-text">选择一首 MIDI 音乐开始演奏</div>
+                    <div className="empty-splash-text">{t('app.emptySplash')}</div>
                   </div>
                 </div>
               )

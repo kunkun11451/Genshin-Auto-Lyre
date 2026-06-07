@@ -501,12 +501,23 @@ function createWindow(): BrowserWindow {
   })
 
   // 打开登录小窗口进行在线曲库账号登录
-  ipcMain.on('midi:openLogin', () => {
+  ipcMain.on('midi:openLogin', (event, lang?: string) => {
+    let windowTitle = '登录到 MidiShow'
+    let targetUrl = 'https://www.midishow.com/user/account/login'
+
+    if (lang?.startsWith('en')) {
+      windowTitle = 'Log in to MidiShow'
+      targetUrl = 'https://www.midishow.com/en/user/account/login'
+    } else if (lang === 'zh-TW' || lang === 'yue') {
+      windowTitle = '登入到 MidiShow'
+      targetUrl = 'https://www.midishow.com/zh-tw/user/account/login'
+    }
+
     const { BrowserWindow } = require('electron')
     const loginWin = new BrowserWindow({
       width: 520,
       height: 640,
-      title: '登录到 MidiShow',
+      title: windowTitle,
       autoHideMenuBar: true,
       webPreferences: {
         partition: 'persist:midishow', // 核心：共用同一 session，以将 Cookie 共享并持久化
@@ -524,7 +535,7 @@ function createWindow(): BrowserWindow {
       }
     })
 
-    loginWin.loadURL('https://www.midishow.com/user/account/login')
+    loginWin.loadURL(targetUrl)
   })
 
   // ===== 自动更新 IPC =====

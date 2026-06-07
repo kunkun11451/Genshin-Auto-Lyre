@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { X, Settings, Piano, Sliders, Info, Volume2 } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
+import { useTranslation } from 'react-i18next'
+
 import type { BlackKeyConfig, BlackKeyStrategy } from '../core/note-mapper'
 import './SettingsPanel.css'
 
@@ -65,6 +67,7 @@ const parseMarkdown = (text: string) => {
 }
 
 export function SettingsPanel(): React.JSX.Element | null {
+  const { t } = useTranslation()
   const isOpen = useAppStore(state => state.isSettingsOpen)
   const setIsSettingsOpen = useAppStore(state => state.setIsSettingsOpen)
   const onClose = () => setIsSettingsOpen(false)
@@ -91,6 +94,9 @@ export function SettingsPanel(): React.JSX.Element | null {
   const onSpeedUpShortcutChange = useAppStore(state => state.setSpeedUpShortcut)
   const speedDownShortcut = useAppStore(state => state.speedDownShortcut)
   const onSpeedDownShortcutChange = useAppStore(state => state.setSpeedDownShortcut)
+
+  const language = useAppStore(state => state.language)
+  const onLanguageChange = useAppStore(state => state.setLanguage)
 
   const [shouldRender, setShouldRender] = useState(isOpen)
   const [isClosing, setIsClosing] = useState(false)
@@ -238,7 +244,7 @@ export function SettingsPanel(): React.JSX.Element | null {
   if (!shouldRender) return null
 
   const formatDisplayShortcut = (shortcut: string) => {
-    if (!shortcut) return '已禁用'
+    if (!shortcut) return t('settings.shortcutDisabled')
     return shortcut
       .split('+')
       .map(part => {
@@ -260,7 +266,7 @@ export function SettingsPanel(): React.JSX.Element | null {
         <div className="settings-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Settings size={18} />
-            <h2>设置</h2>
+            <h2>{t('settings.title')}</h2>
           </div>
           <button className="btn-close" onClick={onClose} title="关闭">
             <X size={20} />
@@ -271,35 +277,51 @@ export function SettingsPanel(): React.JSX.Element | null {
           <div className="settings-group">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Piano size={16} color="var(--text-dim)" />
-              <h3>基础设置</h3>
+              <h3>{t('settings.basicSettings')}</h3>
             </div>
             <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
-              <label>选择乐器</label>
+              <label>{t('settings.selectInstrument')}</label>
               <select
                 value={audioPreviewInstrument}
                 onChange={(e) => onAudioPreviewInstrumentChange(e.target.value)}
                 disabled={isMultiplayerEnabled}
                 style={{ width: '120px' }}
               >
-                <option value="Lyre">风物之诗琴</option>
-                <option value="Zither">镜花之琴</option>
-                <option value="Vintage-Lyre">老旧的诗琴</option>
-                <option value="Horn">晚风圆号</option>
-                <option value="Ukulele">悠可琴</option>
-                <option value="LingeringEuphonia">「余音」</option>
-                <option value="LeapingSpiritPiano">跃律琴</option>
-                <option value="HarmonicKey">谐律键琴</option>
+                <option value="Lyre">{t('instruments.Lyre')}</option>
+                <option value="Zither">{t('instruments.Zither')}</option>
+                <option value="Vintage-Lyre">{t('instruments.Vintage-Lyre')}</option>
+                <option value="Horn">{t('instruments.Horn')}</option>
+                <option value="Ukulele">{t('instruments.Ukulele')}</option>
+                <option value="LingeringEuphonia">{t('instruments.LingeringEuphonia')}</option>
+                <option value="LeapingSpiritPiano">{t('instruments.LeapingSpiritPiano')}</option>
+                <option value="HarmonicKey">{t('instruments.HarmonicKey')}</option>
               </select>
             </div>
             <div className="setting-item" style={{ marginTop: '12px' }}>
-              <label>主题外观</label>
+              <label>{t('settings.theme')}</label>
               <select
                 value={theme}
                 onChange={(e) => onThemeChange(e.target.value as 'system' | 'light' | 'dark')}
               >
-                <option value="system">跟随系统</option>
-                <option value="dark">深色模式</option>
-                <option value="light">浅色模式</option>
+                <option value="system">{t('settings.themeSystem')}</option>
+                <option value="dark">{t('settings.themeDark')}</option>
+                <option value="light">{t('settings.themeLight')}</option>
+              </select>
+            </div>
+            <div className="setting-item" style={{ marginTop: '12px' }}>
+              <label>{t('settings.language')}</label>
+              <select
+                value={language}
+                onChange={(e) => onLanguageChange(e.target.value as any)}
+              >
+                <option value="zh">简体中文</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="yue">廣東話</option>
+                <option value="en">English</option>
+                <option value="lzh">文言</option>
+                <option value="miao">猫猫语</option>
+                <option value="ikun">IKUN语录</option>
+                <option value="yd">啊？云朵☁？</option>
               </select>
             </div>
           </div>
@@ -308,45 +330,45 @@ export function SettingsPanel(): React.JSX.Element | null {
           <div className="settings-group">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Sliders size={16} color="var(--text-dim)" />
-              <h3>黑键映射策略</h3>
+              <h3>{t('settings.blackKeyStrategyTitle')}</h3>
             </div>
             <div className="setting-item">
-              <label>低音八度 (C3~B3)</label>
+              <label>{t('settings.lowOctave')}</label>
               <select
                 value={blackKeyConfig.lowOctave}
                 onChange={(e) => handleStrategyChange('lowOctave', e.target.value as BlackKeyStrategy)}
               >
-                <option value="skip">不演奏</option>
-                <option value="dual">双键演奏</option>
-                <option value="floor">向下映射</option>
-                <option value="ceil">向上映射</option>
-                <option value="nearest">就近映射</option>
+                <option value="skip">{t('settings.keySkip')}</option>
+                <option value="dual">{t('settings.keyDual')}</option>
+                <option value="floor">{t('settings.keyFloor')}</option>
+                <option value="ceil">{t('settings.keyCeil')}</option>
+                <option value="nearest">{t('settings.keyNearest')}</option>
               </select>
             </div>
             <div className="setting-item">
-              <label>中音八度 (C4~B4)</label>
+              <label>{t('settings.midOctave')}</label>
               <select
                 value={blackKeyConfig.midOctave}
                 onChange={(e) => handleStrategyChange('midOctave', e.target.value as BlackKeyStrategy)}
               >
-                <option value="skip">不演奏</option>
-                <option value="dual">双键演奏</option>
-                <option value="floor">向下映射</option>
-                <option value="ceil">向上映射</option>
-                <option value="nearest">就近映射</option>
+                <option value="skip">{t('settings.keySkip')}</option>
+                <option value="dual">{t('settings.keyDual')}</option>
+                <option value="floor">{t('settings.keyFloor')}</option>
+                <option value="ceil">{t('settings.keyCeil')}</option>
+                <option value="nearest">{t('settings.keyNearest')}</option>
               </select>
             </div>
             <div className="setting-item">
-              <label>高音八度 (C5~B5)</label>
+              <label>{t('settings.highOctave')}</label>
               <select
                 value={blackKeyConfig.highOctave}
                 onChange={(e) => handleStrategyChange('highOctave', e.target.value as BlackKeyStrategy)}
               >
-                <option value="skip">不演奏</option>
-                <option value="dual">双键演奏</option>
-                <option value="floor">向下映射</option>
-                <option value="ceil">向上映射</option>
-                <option value="nearest">就近映射</option>
+                <option value="skip">{t('settings.keySkip')}</option>
+                <option value="dual">{t('settings.keyDual')}</option>
+                <option value="floor">{t('settings.keyFloor')}</option>
+                <option value="ceil">{t('settings.keyCeil')}</option>
+                <option value="nearest">{t('settings.keyNearest')}</option>
               </select>
             </div>
           </div>
@@ -355,10 +377,10 @@ export function SettingsPanel(): React.JSX.Element | null {
           <div className="settings-group" style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Sliders size={16} color="var(--text-dim)" />
-              <h3>演奏参数</h3>
+              <h3>{t('settings.playbackParams')}</h3>
             </div>
             <div className="setting-item">
-              <label>整体移调 (半音)</label>
+              <label>{t('settings.transpose')}</label>
               <input
                 type="number"
                 value={transpose}
@@ -367,7 +389,7 @@ export function SettingsPanel(): React.JSX.Element | null {
               />
             </div>
             <div className="setting-item">
-              <label>启动延迟 (秒)</label>
+              <label>{t('settings.startDelay')}</label>
               <input
                 type="number"
                 value={startDelaySec}
@@ -381,10 +403,10 @@ export function SettingsPanel(): React.JSX.Element | null {
           <div className="settings-group" style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Volume2 size={16} color="var(--text-dim)" />
-              <h3>音频预览与调试</h3>
+              <h3>{t('settings.audioPreviewTitle')}</h3>
             </div>
             <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
-              <label>开启按键试听 {isMultiplayerEnabled && '(多人演奏中已强制禁用)'}</label>
+              <label>{t('settings.enableAudioPreview')} {isMultiplayerEnabled && `(${t('settings.multiplayerDisabled')})`}</label>
               <label className="toggle-switch" style={isMultiplayerEnabled ? { pointerEvents: 'none' } : {}}>
                 <input
                   type="checkbox"
@@ -401,10 +423,10 @@ export function SettingsPanel(): React.JSX.Element | null {
           <div className="settings-group" style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Sliders size={16} color="var(--text-dim)" />
-              <h3>多人联机合奏</h3>
+              <h3>{t('settings.multiplayerTitle')}</h3>
             </div>
             <div className="setting-item">
-              <label>开启多人演奏模式</label>
+              <label>{t('settings.enableMultiplayer')}</label>
               <label className="toggle-switch">
                 <input
                   type="checkbox"
@@ -420,46 +442,46 @@ export function SettingsPanel(): React.JSX.Element | null {
           <div className="settings-group" style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Sliders size={16} color="var(--text-dim)" />
-              <h3>热键设置</h3>
+              <h3>{t('settings.shortcutTitle')}</h3>
             </div>
             <div className="setting-item">
-              <label>暂停 / 播放</label>
+              <label>{t('settings.playbackToggle')}</label>
               <button
                 className={`shortcut-record-btn ${recordingType === 'playback' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('playback')}
                 title="点击后按下快捷键"
               >
-                {recordingType === 'playback' ? '请按下按键...' : formatDisplayShortcut(playbackShortcut)}
+                {recordingType === 'playback' ? t('settings.pressAnyKey') : formatDisplayShortcut(playbackShortcut)}
               </button>
             </div>
             <div className="setting-item">
-              <label>停止</label>
+              <label>{t('settings.playbackStop')}</label>
               <button
                 className={`shortcut-record-btn ${recordingType === 'stop' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('stop')}
                 title="点击后按下快捷键"
               >
-                {recordingType === 'stop' ? '请按下按键...' : formatDisplayShortcut(stopShortcut)}
+                {recordingType === 'stop' ? t('settings.pressAnyKey') : formatDisplayShortcut(stopShortcut)}
               </button>
             </div>
             <div className="setting-item">
-              <label>演奏加速</label>
+              <label>{t('settings.speedUp')}</label>
               <button
                 className={`shortcut-record-btn ${recordingType === 'speedUp' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('speedUp')}
                 title="点击后按下快捷键"
               >
-                {recordingType === 'speedUp' ? '请按下按键...' : formatDisplayShortcut(speedUpShortcut)}
+                {recordingType === 'speedUp' ? t('settings.pressAnyKey') : formatDisplayShortcut(speedUpShortcut)}
               </button>
             </div>
             <div className="setting-item">
-              <label>演奏减速</label>
+              <label>{t('settings.speedDown')}</label>
               <button
                 className={`shortcut-record-btn ${recordingType === 'speedDown' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('speedDown')}
                 title="点击后按下快捷键"
               >
-                {recordingType === 'speedDown' ? '请按下按键...' : formatDisplayShortcut(speedDownShortcut)}
+                {recordingType === 'speedDown' ? t('settings.pressAnyKey') : formatDisplayShortcut(speedDownShortcut)}
               </button>
             </div>
           </div>
@@ -468,12 +490,26 @@ export function SettingsPanel(): React.JSX.Element | null {
           <div className="settings-group" style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Info size={16} color="var(--text-dim)" />
-              <h3>关于</h3>
+              <h3>{t('settings.aboutTitle')}</h3>
             </div>
             <div className="setting-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                <label>当前版本</label>
+                <label>{t('settings.currentVersion')}</label>
                 <span style={{ color: 'var(--text-dim)' }}>v{appVersion || '...'}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <label>{t('settings.openSourceRepo')}</label>
+                <a
+                  href="https://github.com/kunkun11451/Genshin-Auto-Lyre"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--text-dim)', textDecoration: 'none', transition: 'color 0.2s', fontSize: '13px' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-dim)'}
+                >
+                  {t('settings.clickToVisit')}
+                </a>
               </div>
 
               <div style={{ display: 'flex', width: '100%', gap: '8px', marginTop: '4px', flexDirection: 'column' }}>
@@ -481,33 +517,35 @@ export function SettingsPanel(): React.JSX.Element | null {
                   <>
                     <button
                       onClick={handleCheckUpdate}
-                      style={{ padding: '6px 12px', background: 'var(--bg-highlight)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: '4px', cursor: 'pointer', width: '100%' }}
+                      className="mp-btn"
+                      style={{ width: '100%', fontSize: '13px' }}
                     >
-                      检查更新
+                      {t('settings.checkUpdate')}
                     </button>
                     {updateStatus === 'error' && updateErrorMsg && (
                       <span style={{ fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>{updateErrorMsg}</span>
                     )}
                   </>
                 ) : updateStatus === 'checking' ? (
-                  <span style={{ fontSize: '13px', color: 'var(--text-dim)', textAlign: 'center', padding: '6px 0' }}>正在检查更新...</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-dim)', textAlign: 'center', padding: '6px 0' }}>{t('settings.checkingUpdate')}</span>
                 ) : updateStatus === 'available' ? (
                   <div style={{ background: 'var(--bg-highlight)', padding: '12px', borderRadius: '6px', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>发现新版本: v{updateInfo?.version}</div>
+                    <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{t('settings.foundNewVersion')}: v{updateInfo?.version}</div>
                     <div className="update-release-notes" style={{ fontSize: '12px', color: 'var(--text-secondary)', maxHeight: '120px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {parseMarkdown(updateInfo?.releaseNotes)}
                     </div>
                     <button
                       onClick={handleStartUpdate}
-                      style={{ padding: '6px 12px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: '4px', cursor: 'pointer', marginTop: '4px', fontSize: '13px' }}
+                      className="mp-btn"
+                      style={{ marginTop: '4px', fontSize: '13px', width: '100%' }}
                     >
-                      立即下载更新
+                      {t('settings.downloadUpdateNow')}
                     </button>
                   </div>
                 ) : updateStatus === 'downloading' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '6px', background: 'var(--bg-highlight)', border: '1px solid var(--glass-border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-dim)' }}>
-                      <span>正在下载更新...</span>
+                      <span>{t('settings.downloadingUpdate')}</span>
                       <span>{updateProgress}%</span>
                     </div>
                     <div style={{ width: '100%', height: '4px', background: 'var(--glass-border)', borderRadius: '2px', overflow: 'hidden' }}>
@@ -517,25 +555,25 @@ export function SettingsPanel(): React.JSX.Element | null {
                 ) : updateStatus === 'ready' ? (
                   <div style={{ background: 'var(--bg-highlight)', padding: '16px', borderRadius: '8px', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '16px' }}>🎉</span> 更新已准备就绪！
+                      <span style={{ fontSize: '16px' }}>🎉</span> {t('settings.updateReadyTitle')}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center', lineHeight: '1.6' }}>
-                      新版本已成功下载。<br />
-                      您可以选择立即重启以应用新版本，<br />
-                      或者在您关闭软件后，它也会在后台自动完成升级替换。
+                      {t('settings.updateReadyDesc')}
                     </div>
                     <div style={{ display: 'flex', width: '100%', gap: '8px', marginTop: '6px' }}>
                       <button
                         onClick={handleApplyUpdateNow}
-                        style={{ flex: 1, padding: '8px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                        className="mp-btn primary"
+                        style={{ flex: 1, fontSize: '12px' }}
                       >
-                        立即重启更新
+                        {t('settings.restartNow')}
                       </button>
                       <button
                         onClick={handleApplyUpdateLater}
-                        style={{ flex: 1, padding: '8px 12px', background: 'transparent', color: 'var(--text-dim)', border: '1px solid var(--glass-border)', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                        className="mp-btn"
+                        style={{ flex: 1, fontSize: '12px' }}
                       >
-                        稍后 (退出时更新)
+                        {t('settings.restartLater')}
                       </button>
                     </div>
                   </div>
