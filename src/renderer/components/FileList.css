@@ -83,31 +83,86 @@
 .file-items {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 0;
 }
 
 .file-item {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  padding: 10px 12px;
-  margin-bottom: 4px;
-  border-radius: 6px;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-radius: 0;
   cursor: pointer;
   transition: background 0.2s;
   color: var(--text-secondary);
   font-size: 13px;
 }
 
+.file-item.is-dir {
+  position: sticky;
+  background-color: transparent;
+}
+
+.file-item.is-dir.stuck {
+  background-color: var(--bg-primary);
+}
+
+.file-item.is-dir.stuck:hover {
+  background-color: var(--bg-primary);
+  background-image: linear-gradient(var(--hover-bg), var(--hover-bg));
+}
+
+.file-item.is-dir.stuck.selected {
+  background-color: var(--bg-primary);
+  background-image: linear-gradient(rgba(0, 180, 216, 0.1), rgba(0, 180, 216, 0.1));
+}
+
+.file-item.is-dir.stuck.selected.unfocused {
+  background-color: var(--bg-primary);
+  background-image: linear-gradient(var(--hover-bg-strong), var(--hover-bg-strong));
+}
+
+.file-item.is-dir.stuck.active {
+  background-color: var(--bg-primary);
+  background-image: linear-gradient(rgba(0, 180, 216, 0.15), rgba(0, 180, 216, 0.15));
+}
+
 .file-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background-color: var(--hover-bg);
   color: var(--text-primary);
 }
 
+.file-item.selected {
+  background-color: rgba(0, 180, 216, 0.1);
+  color: var(--text-primary);
+}
+
+.file-item.selected.unfocused {
+  background-color: var(--hover-bg-strong);
+  color: var(--text-secondary);
+}
+
 .file-item.active {
-  background: rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 180, 216, 0.15);
   color: var(--text-primary);
   font-weight: 500;
+}
+
+.file-item.cut-node {
+  opacity: 0.5;
+}
+
+.folder-drop-target {
+  background-color: rgba(0, 120, 215, 0.15);
+  outline: 1px solid rgba(0, 120, 215, 0.5);
+  outline-offset: -1px;
+}
+
+.folder-drop-target > .file-item.is-dir.stuck {
+  background-color: var(--bg-primary) !important;
+  background-image: linear-gradient(rgba(0, 120, 215, 0.15), rgba(0, 120, 215, 0.15)) !important;
 }
 
 .file-item-name {

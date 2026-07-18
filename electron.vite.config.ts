@@ -12,6 +12,9 @@ export default defineConfig({
   },
   // 渲染进程配置
   renderer: {
-    plugins: [react()]
+    plugins: [react()],
+    server: {
+      port: 8899
+    }
   }
 })

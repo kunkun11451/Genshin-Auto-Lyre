@@ -12,6 +12,9 @@ interface ElectronAPI {
 
   // ===== 文件操作 =====
   listMidiFiles: () => Promise<string[]>
+  getMidiBaseDir: () => Promise<string>
+  copyMidiFiles: (sourcePaths: string[], targetDir: string) => Promise<string[]>
+  moveMidiFiles: (sourcePaths: string[], targetDir: string) => Promise<string[]>
   openMidiDir: () => void
   renameMidiFile: (oldPath: string, newName: string) => Promise<string>
   deleteMidiFile: (filePath: string) => Promise<void>

@@ -23,6 +23,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ===== 文件操作 =====
   /** 获取专属文件夹下所有 MIDI 文件 */
   listMidiFiles: () => ipcRenderer.invoke('midi:list'),
+  /** 获取 MIDI 根目录 */
+  getMidiBaseDir: () => ipcRenderer.invoke('midi:getBaseDir'),
+  /** 复制文件 */
+  copyMidiFiles: (sourcePaths: string[], targetDir: string) => ipcRenderer.invoke('midi:copy', sourcePaths, targetDir),
+  /** 移动文件 */
+  moveMidiFiles: (sourcePaths: string[], targetDir: string) => ipcRenderer.invoke('midi:move', sourcePaths, targetDir),
   /** 打开系统资源管理器访问 MIDI 专属文件夹 */
   openMidiDir: () => ipcRenderer.send('midi:openDir'),
   /** 重命名 MIDI 文件 */

@@ -47,7 +47,9 @@
     "updateReadyTitle": "🎉 更新已准备就绪！",
     "updateReadyDesc": "新版本已成功下载。您可以选择立即重启以应用新版本，或者在您关闭软件后，它也会在后台自动完成升级替换。",
     "restartNow": "立即重启更新",
-    "restartLater": "稍后 (退出时更新)"
+    "restartLater": "稍后 (退出时更新)",
+    "upToDate": "当前已是最新版本",
+    "checkFailed": "检查更新失败"
   },
   "controls": {
     "stop": "停止",
@@ -74,7 +76,9 @@
     "emptyStateHint": "请点击上方文件夹按钮放入 MIDI 文件",
     "rename": "重命名",
     "delete": "删除",
-    "deleteConfirm": "确定要删除文件 \"{{name}}\" 吗？（将移入回收站）"
+    "deleteConfirm": "确定要永久删除 {{name}} 吗？此操作不可恢复。",
+    "downloads": "下载",
+    "deleteMultiConfirm": "确定要永久删除这 {{count}} 项吗？此操作不可恢复。"
   },
   "multiplayer": {
     "title": "多人联机合奏",

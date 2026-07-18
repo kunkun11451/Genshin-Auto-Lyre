@@ -46,8 +46,10 @@
     "downloadingUpdate": "Downloading...",
     "updateReadyTitle": "🎉 Update Ready!",
     "updateReadyDesc": "The new version has been downloaded. You can restart now to apply, or it will be applied automatically when you exit the app.",
-    "restartNow": "Restart Now",
-    "restartLater": "Later (Update on Exit)"
+    "restartNow": "Restart and Install",
+    "restartLater": "Later (Install on exit)",
+    "upToDate": "You are up to date",
+    "checkFailed": "Update check failed"
   },
   "controls": {
     "stop": "Stop",
@@ -74,7 +76,9 @@
     "emptyStateHint": "Please click the folder button above and add MIDI files",
     "rename": "Rename",
     "delete": "Delete",
-    "deleteConfirm": "Are you sure you want to delete file \"{{name}}\"? (Moved to Recycle Bin)"
+    "deleteConfirm": "Are you sure you want to permanently delete {{name}}? This cannot be undone.",
+    "downloads": "Downloads",
+    "deleteMultiConfirm": "Are you sure you want to permanently delete these {{count}} items? This cannot be undone."
   },
   "multiplayer": {
     "title": "Multiplayer Ensemble",

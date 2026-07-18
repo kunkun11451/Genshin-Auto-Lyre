@@ -36,6 +36,11 @@ export interface MidiFileInfo {
   name: string
 }
 
+export interface ClipboardState {
+  type: 'copy' | 'cut'
+  files: string[]
+}
+
 /** 应用状态接口 */
 interface AppState {
   // ===== MIDI 文件列表 =====
@@ -44,6 +49,8 @@ interface AppState {
   latestDownloadedMidi: string | null
   midiShowUrl: string | null
   searchQuery: string
+  selectedFiles: Set<string>
+  clipboard: ClipboardState | null
 
   // ===== 解析结果 =====
   parsedMidi: ParsedMidi | null
@@ -121,6 +128,8 @@ interface AppState {
   setLatestDownloadedMidi: (path: string | null) => void
   setMidiShowUrl: (url: string | null) => void
   setSearchQuery: (query: string) => void
+  setSelectedFiles: (files: Set<string>) => void
+  setClipboard: (state: ClipboardState | null) => void
 
   setParsedMidi: (midi: ParsedMidi | null) => void
   setMappedNotes: (notes: MappedNote[]) => void
@@ -149,8 +158,8 @@ interface AppState {
   setUpdateInfo: (info: any) => void
   setUpdateProgress: (p: number) => void
   setUpdateErrorMsg: (msg: string) => void
-  language: 'zh' | 'zh-TW' | 'yue' | 'en' | 'lzh' | 'miao' | 'ikun'
-  setLanguage: (lang: 'zh' | 'zh-TW' | 'yue' | 'en' | 'lzh' | 'miao' | 'ikun') => void
+  language: 'zh' | 'zh-TW' | 'en'
+  setLanguage: (lang: 'zh' | 'zh-TW' | 'en') => void
 }
 
 // ============================================================
@@ -166,6 +175,8 @@ export const useAppStore = create<AppState>()(
       latestDownloadedMidi: null,
       midiShowUrl: null,
       searchQuery: '',
+      selectedFiles: new Set(),
+      clipboard: null,
 
       parsedMidi: null,
       mappedNotes: [],
@@ -225,6 +236,10 @@ export const useAppStore = create<AppState>()(
       setMidiShowUrl: (url) => set({ midiShowUrl: url }),
 
       setSearchQuery: (query) => set({ searchQuery: query }),
+
+      setSelectedFiles: (files) => set({ selectedFiles: files }),
+
+      setClipboard: (state) => set({ clipboard: state }),
 
       setParsedMidi: (midi) => set({ parsedMidi: midi }),
 

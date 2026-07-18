@@ -122,11 +122,11 @@ export function SettingsPanel(): React.JSX.Element | null {
         setUpdateStatus('available')
       } else {
         setUpdateStatus('error')
-        setUpdateErrorMsg('当前已是最新版本')
+        setUpdateErrorMsg(t('settings.upToDate'))
       }
     } catch (err: any) {
       setUpdateStatus('error')
-      setUpdateErrorMsg(err.message || '检查更新失败')
+      setUpdateErrorMsg(err.message || t('settings.checkFailed'))
     }
   }
 
@@ -316,12 +316,7 @@ export function SettingsPanel(): React.JSX.Element | null {
               >
                 <option value="zh">简体中文</option>
                 <option value="zh-TW">繁體中文</option>
-                <option value="yue">廣東話</option>
                 <option value="en">English</option>
-                <option value="lzh">文言</option>
-                <option value="miao">猫猫语</option>
-                <option value="ikun">IKUN语录</option>
-                <option value="yd">啊？云朵☁？</option>
               </select>
             </div>
           </div>

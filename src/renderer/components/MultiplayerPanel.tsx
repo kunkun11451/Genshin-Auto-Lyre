@@ -186,7 +186,7 @@ export function MultiplayerPanel(): React.JSX.Element {
   const previewTrackIdxRef = useRef<string | number | null>(null)
 
   // 提示消息定时清除引用与动画驱动
-  const toastTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const setStatusMsg = (msg: string) => {
     setStatusMsgState(msg)
@@ -428,7 +428,7 @@ export function MultiplayerPanel(): React.JSX.Element {
       noteIndex++
     }
 
-    const activeTimeouts = new Map<number, NodeJS.Timeout>()
+    const activeTimeouts = new Map<number, ReturnType<typeof setTimeout>>()
 
     const tick = () => {
       const elapsed = performance.now() - startTime
@@ -488,7 +488,7 @@ export function MultiplayerPanel(): React.JSX.Element {
       noteIndex++
     }
 
-    const activeTimeouts = new Map<number, NodeJS.Timeout>()
+    const activeTimeouts = new Map<number, ReturnType<typeof setTimeout>>()
 
     const tick = () => {
       const elapsed = performance.now() - startTime

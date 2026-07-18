@@ -20,6 +20,7 @@
   "include": [
     "src/renderer/**/*.ts",
     "src/renderer/**/*.tsx",
-    "src/renderer/**/*.d.ts"
+    "src/renderer/**/*.d.ts",
+    "src/renderer/**/*.json"
   ]
 }

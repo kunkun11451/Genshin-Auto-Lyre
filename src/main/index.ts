@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell, globalShortcut } from 'electron'
-import { join, dirname } from 'path'
-import { readFile, readdir, stat, mkdir, rename } from 'fs/promises'
-import { watch } from 'fs'
+import { join, dirname, parse, basename } from 'path'
+import { readFile, readdir, stat, mkdir, rename, copyFile, rm } from 'fs/promises'
+import chokidar from 'chokidar'
 import { execSync } from 'child_process'
 import { initKeyboardSimulator, simulateKeyDown, simulateKeyUp, simulateKeyBatch, destroyKeyboardSimulator } from './keyboard-simulator'
 import { checkUpdate, downloadUpdate, getUpdatePaths, applyUpdate, cleanUpdateTempFiles } from './updater'
@@ -168,19 +168,74 @@ function createWindow(): BrowserWindow {
     return await scanMidiFiles(midiDirPath)
   })
 
+  ipcMain.handle('midi:getBaseDir', () => {
+    return midiDirPath
+  })
+
+  async function getUniqueFilePath(destPath: string): Promise<string> {
+    let uniquePath = destPath
+    let counter = 1
+    const parsed = parse(destPath)
+    while (true) {
+      try {
+        await stat(uniquePath)
+        uniquePath = join(parsed.dir, `${parsed.name} (${counter})${parsed.ext}`)
+        counter++
+      } catch {
+        break
+      }
+    }
+    return uniquePath
+  }
+
+  // 复制文件
+  ipcMain.handle('midi:copy', async (_event, sourcePaths: string[], targetDir: string) => {
+    const results: string[] = []
+    for (const src of sourcePaths) {
+      const fileName = basename(src)
+      const targetPath = join(targetDir, fileName)
+      const uniquePath = await getUniqueFilePath(targetPath)
+      await copyFile(src, uniquePath)
+      results.push(uniquePath)
+    }
+    return results
+  })
+
+  // 移动文件
+  ipcMain.handle('midi:move', async (_event, sourcePaths: string[], targetDir: string) => {
+    const results: string[] = []
+    for (const src of sourcePaths) {
+      // 避免将文件移动到它自己所在的文件夹
+      if (dirname(src) === targetDir) {
+        results.push(src)
+        continue
+      }
+      const fileName = basename(src)
+      const targetPath = join(targetDir, fileName)
+      const uniquePath = await getUniqueFilePath(targetPath)
+      await rename(src, uniquePath)
+      results.push(uniquePath)
+    }
+    return results
+  })
+
   ipcMain.on('midi:openDir', () => {
     shell.openPath(midiDirPath)
   })
 
   ipcMain.handle('midi:rename', async (_event, oldPath: string, newName: string) => {
-    const finalName = newName.toLowerCase().endsWith('.mid') ? newName : newName + '.mid'
+    const isDirectory = (await stat(oldPath)).isDirectory()
+    let finalName = newName
+    if (!isDirectory && !newName.toLowerCase().endsWith('.mid') && !newName.toLowerCase().endsWith('.midi')) {
+      finalName = newName + '.mid'
+    }
     const newPath = join(dirname(oldPath), finalName)
     await rename(oldPath, newPath)
     return newPath
   })
 
   ipcMain.handle('midi:delete', async (_event, filePath: string) => {
-    await shell.trashItem(filePath)
+    await rm(filePath, { recursive: true, force: true })
   })
 
   ipcMain.handle('midi:readFile', async (_event, filePath: string) => {
@@ -502,14 +557,14 @@ function createWindow(): BrowserWindow {
 
   // 打开登录小窗口进行在线曲库账号登录
   ipcMain.on('midi:openLogin', (event, lang?: string) => {
-    let windowTitle = '登录到 MidiShow'
+    let windowTitle = '登录到 MidiShow，登录成功后直接关闭本窗口即可'
     let targetUrl = 'https://www.midishow.com/user/account/login'
 
     if (lang?.startsWith('en')) {
-      windowTitle = 'Log in to MidiShow'
+      windowTitle = 'Log in to MidiShow - Please close this window after a successful login'
       targetUrl = 'https://www.midishow.com/en/user/account/login'
     } else if (lang === 'zh-TW' || lang === 'yue') {
-      windowTitle = '登入到 MidiShow'
+      windowTitle = '登入到 MidiShow，登入成功後直接關閉本視窗即可'
       targetUrl = 'https://www.midishow.com/zh-tw/user/account/login'
     }
 
@@ -526,6 +581,10 @@ function createWindow(): BrowserWindow {
         sandbox: false,
         devTools: isDev
       }
+    })
+
+    loginWin.on('page-title-updated', (e: Electron.Event) => {
+      e.preventDefault()
     })
 
     // 监听登录窗口关闭事件，等用户手动关闭后通知大窗口自动重刷以读取最新状态
@@ -633,7 +692,7 @@ app.whenReady().then(async () => {
 
   // 监听目录变化，使用防抖以避免频繁触发
   let watchTimeout: NodeJS.Timeout | null = null
-  watch(midiDirPath, { recursive: true }, () => {
+  chokidar.watch(midiDirPath, { ignoreInitial: true, usePolling: true, interval: 1000 }).on('all', () => {
     if (watchTimeout) clearTimeout(watchTimeout)
     watchTimeout = setTimeout(() => {
       if (!mainWindow.isDestroyed()) {
