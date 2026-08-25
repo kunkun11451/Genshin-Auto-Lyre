@@ -1,0 +1,250 @@
+/* 房主右上角置顶校准悬浮窗 HUD（灰白黑极简质感） */
+.calibration-hud-container {
+  position: fixed;
+  top: 40px;
+  right: 16px;
+  width: 280px;
+  background: rgba(18, 18, 20, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  user-select: none;
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+/* 独立桌面置顶小窗口模式 */
+.calibration-hud-container.standalone {
+  position: static;
+  margin: 6px;
+  width: calc(100vw - 12px);
+  height: calc(100vh - 12px);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  overflow: hidden;
+  animation: none;
+  -webkit-app-region: drag;
+}
+
+.calibration-hud-container.standalone button,
+.calibration-hud-container.standalone kbd,
+.calibration-hud-container.standalone .calibration-hud-close-btn {
+  -webkit-app-region: no-drag;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.calibration-hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.calibration-hud-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.calibration-hud-close-btn {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.calibration-hud-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.calibration-hud-target {
+  font-size: 12px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.calibration-hud-target-name {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* 延迟大字数值区 */
+.calibration-hud-delay-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.calibration-hud-delay-num {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: monospace;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+.calibration-hud-delay-unit {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+/* 循环状态指示条 */
+.calibration-hud-pulse-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.calibration-hud-pulse-status.playing {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: pulseGlow 1s infinite alternate;
+}
+
+.calibration-hud-pulse-status.paused {
+  background: rgba(255, 255, 255, 0.04);
+  color: #6b7280;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@keyframes pulseGlow {
+  from { opacity: 0.8; }
+  to { opacity: 1; border-color: rgba(255, 255, 255, 0.6); }
+}
+
+/* 快捷键操作提示小字 */
+.calibration-hud-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+  line-height: 1.4;
+}
+
+.calibration-hud-shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calibration-hud-kbd {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* 浅色模式适配 */
+.light .calibration-hud-container {
+  background: rgba(250, 250, 250, 0.96);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.light .calibration-hud-header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.light .calibration-hud-title {
+  color: #111827;
+}
+
+.light .calibration-hud-close-btn {
+  color: #6b7280;
+}
+
+.light .calibration-hud-close-btn:hover {
+  color: #111827;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.light .calibration-hud-target {
+  color: #6b7280;
+}
+
+.light .calibration-hud-target-name {
+  color: #111827;
+}
+
+.light .calibration-hud-delay-display {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.light .calibration-hud-delay-num {
+  color: #111827;
+}
+
+.light .calibration-hud-delay-unit {
+  color: #6b7280;
+}
+
+.light .calibration-hud-pulse-status.playing {
+  background: rgba(0, 0, 0, 0.08);
+  color: #111827;
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.light .calibration-hud-pulse-status.paused {
+  background: rgba(0, 0, 0, 0.03);
+  color: #9ca3af;
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.light .calibration-hud-shortcuts {
+  color: #6b7280;
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+.light .calibration-hud-kbd {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #111827;
+}

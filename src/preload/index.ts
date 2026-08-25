@@ -42,6 +42,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   /** 读取 MIDI 文件内容 */
   readMidiFile: (filePath: string) => ipcRenderer.invoke('midi:readFile', filePath),
+  /** 保存 MIDI 文件到专属文件夹 */
+  saveMidiFile: (fileName: string, buffer: ArrayBuffer) => ipcRenderer.invoke('midi:saveFile', fileName, buffer),
+  /** 测量与游戏服务器的网络延迟 (ms) */
+  pingGameServer: () => ipcRenderer.invoke('network:pingGameServer'),
 
   // ===== 键盘模拟（占位，后续实现） =====
   /** 模拟按键按下 */
@@ -82,6 +86,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('shortcut:speedDownTriggered', handler)
     return () => ipcRenderer.off('shortcut:speedDownTriggered', handler)
   },
+
+  // ===== 延迟校准置顶悬浮窗 =====
+  openCalibrationWindow: (data?: any) => ipcRenderer.send('calibration:open', data),
+  updateCalibrationWindow: (data: any) => ipcRenderer.send('calibration:update', data),
+  closeCalibrationWindow: () => ipcRenderer.send('calibration:close'),
+  onCalibrationShortcut: (callback: (key: string) => void) => {
+    const handler = (_e: any, key: string) => callback(key)
+    ipcRenderer.on('calibration:shortcut', handler)
+    return () => ipcRenderer.off('calibration:shortcut', handler)
+  },
+  onCalibrationData: (callback: (data: any) => void) => {
+    const handler = (_e: any, data: any) => callback(data)
+    ipcRenderer.on('calibration:data', handler)
+    return () => ipcRenderer.off('calibration:data', handler)
+  },
+  onCalibrationClosed: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('calibration:closedFromWindow', handler)
+    return () => ipcRenderer.off('calibration:closedFromWindow', handler)
+  },
+  requestCalibrationData: () => ipcRenderer.send('calibration:requestData'),
 
   // ===== 在线曲库 =====
   /** 初始化 webview 的 session（CSP 剥离 + 下载拦截） */

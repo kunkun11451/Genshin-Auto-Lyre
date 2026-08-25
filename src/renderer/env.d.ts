@@ -20,6 +20,8 @@ interface ElectronAPI {
   deleteMidiFile: (filePath: string) => Promise<void>
   onDirChanged: (callback: () => void) => () => void
   readMidiFile: (filePath: string) => Promise<ArrayBuffer>
+  saveMidiFile: (fileName: string, buffer: ArrayBuffer) => Promise<string>
+  pingGameServer: () => Promise<number>
 
   // 键盘模拟
   keyDown: (key: string) => void
@@ -50,6 +52,15 @@ interface ElectronAPI {
   onUpdateProgress: (callback: (percent: number) => void) => () => void
   onUpdateReady: (callback: () => void) => () => void
   onUpdateError: (callback: (error: string) => void) => () => void
+
+  // 延迟校准悬浮窗
+  openCalibrationWindow: (data?: any) => void
+  updateCalibrationWindow: (data: any) => void
+  closeCalibrationWindow: () => void
+  onCalibrationShortcut: (callback: (key: string) => void) => () => void
+  onCalibrationData: (callback: (data: any) => void) => () => void
+  onCalibrationClosed: (callback: () => void) => () => void
+  requestCalibrationData: () => void
 }
 
 declare global {

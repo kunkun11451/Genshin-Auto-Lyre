@@ -1,8 +1,12 @@
-import { app, BrowserWindow, ipcMain, shell, globalShortcut } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, globalShortcut, screen } from 'electron'
 import { join, dirname, parse, basename } from 'path'
-import { readFile, readdir, stat, mkdir, rename, copyFile, rm } from 'fs/promises'
+import { readFile, writeFile, readdir, stat, mkdir, rename, copyFile, rm } from 'fs/promises'
 import chokidar from 'chokidar'
-import { execSync } from 'child_process'
+import * as nodeNet from 'net'
+import { exec, execSync } from 'child_process'
+import { promisify } from 'util'
+
+const execAsync = promisify(exec)
 import { initKeyboardSimulator, simulateKeyDown, simulateKeyUp, simulateKeyBatch, destroyKeyboardSimulator } from './keyboard-simulator'
 import { checkUpdate, downloadUpdate, getUpdatePaths, applyUpdate, cleanUpdateTempFiles } from './updater'
 
@@ -15,10 +19,140 @@ let updateAsset = ''
 let isUpdateApplied = false
 let isDownloadingUpdate = false
 
+// 主窗口与置顶校准悬浮窗引用
+let mainWin: BrowserWindow | null = null
+let calibrationWindow: BrowserWindow | null = null
+
 // MIDI 根目录配置
 const midiDirPath = isDev 
   ? join(process.cwd(), 'midi') 
   : join(process.env.PORTABLE_EXECUTABLE_DIR || dirname(app.getPath('exe')), 'midi')
+
+// 全局校准快捷键注册
+function registerCalibrationShortcuts() {
+  try {
+    globalShortcut.register('Home', () => {
+      mainWin?.webContents.send('calibration:shortcut', 'Home')
+    })
+    const plusKeys = ['Plus', 'Equal', 'numadd']
+    plusKeys.forEach(k => {
+      try { globalShortcut.register(k, () => mainWin?.webContents.send('calibration:shortcut', 'Plus')) } catch(e){}
+    })
+    const minusKeys = ['Minus', 'numsub']
+    minusKeys.forEach(k => {
+      try { globalShortcut.register(k, () => mainWin?.webContents.send('calibration:shortcut', 'Minus')) } catch(e){}
+    })
+    const enterKeys = ['Return', 'numenter']
+    enterKeys.forEach(k => {
+      try { globalShortcut.register(k, () => mainWin?.webContents.send('calibration:shortcut', 'Enter')) } catch(e){}
+    })
+    const ctrlEnterKeys = ['CommandOrControl+Return', 'CommandOrControl+numenter']
+    ctrlEnterKeys.forEach(k => {
+      try { globalShortcut.register(k, () => mainWin?.webContents.send('calibration:shortcut', 'CtrlEnter')) } catch(e){}
+    })
+  } catch (err) {
+    console.error('Register calibration shortcuts error:', err)
+  }
+}
+
+function unregisterCalibrationShortcuts() {
+  const allKeys = ['Home', 'Plus', 'Equal', 'numadd', 'Minus', 'numsub', 'Return', 'numenter', 'CommandOrControl+Return', 'CommandOrControl+numenter']
+  allKeys.forEach(k => {
+    try { globalShortcut.unregister(k) } catch (e) {}
+  })
+}
+
+// 多人延迟校准置顶小悬浮窗尺寸配置
+export const CALIBRATION_WINDOW_CONFIG = {
+  width: 250,       
+  height: 280,       
+  marginRight: 20,   
+  marginTop: 20      
+}
+
+let latestCalibrationData: any = null
+
+function openCalibrationWindow(initialData?: any) {
+  if (initialData) {
+    latestCalibrationData = initialData
+  }
+
+  if (calibrationWindow && !calibrationWindow.isDestroyed()) {
+    calibrationWindow.show()
+    if (latestCalibrationData) {
+      calibrationWindow.webContents.send('calibration:data', latestCalibrationData)
+    }
+    return
+  }
+
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const { width } = primaryDisplay.workAreaSize
+
+  const winWidth = CALIBRATION_WINDOW_CONFIG.width
+  const winHeight = CALIBRATION_WINDOW_CONFIG.height
+  const x = Math.round(width - winWidth - CALIBRATION_WINDOW_CONFIG.marginRight)
+  const y = CALIBRATION_WINDOW_CONFIG.marginTop
+
+  calibrationWindow = new BrowserWindow({
+    parent: mainWin && !mainWin.isDestroyed() ? mainWin : undefined,
+    width: winWidth,
+    height: winHeight,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    show: false,
+    focusable: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      devTools: false
+    }
+  })
+
+  calibrationWindow.setAlwaysOnTop(true, 'screen-saver')
+  calibrationWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
+    calibrationWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#calibration-hud`)
+  } else {
+    calibrationWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'calibration-hud' })
+  }
+
+  const sendData = () => {
+    if (latestCalibrationData && calibrationWindow && !calibrationWindow.isDestroyed()) {
+      calibrationWindow.webContents.send('calibration:data', latestCalibrationData)
+    }
+  }
+
+  calibrationWindow.webContents.on('did-finish-load', sendData)
+  calibrationWindow.on('ready-to-show', () => {
+    calibrationWindow?.show()
+    sendData()
+  })
+
+  calibrationWindow.on('closed', () => {
+    calibrationWindow = null
+    unregisterCalibrationShortcuts()
+    mainWin?.webContents.send('calibration:closedFromWindow')
+  })
+
+  registerCalibrationShortcuts()
+}
+
+function closeCalibrationWindow() {
+  if (calibrationWindow && !calibrationWindow.isDestroyed()) {
+    calibrationWindow.close()
+    calibrationWindow = null
+  }
+  unregisterCalibrationShortcuts()
+}
 
 // 创建主窗口
 function createWindow(): BrowserWindow {
@@ -43,6 +177,8 @@ function createWindow(): BrowserWindow {
     }
   })
 
+  mainWin = mainWindow
+
   // 窗口准备就绪后显示，避免白屏闪烁
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -60,6 +196,12 @@ function createWindow(): BrowserWindow {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  // 主窗口关闭时联动销毁校准悬浮窗
+  mainWindow.on('closed', () => {
+    mainWin = null
+    closeCalibrationWindow()
   })
 
   // 开发模式加载 dev server，生产模式加载本地文件
@@ -83,11 +225,13 @@ function createWindow(): BrowserWindow {
   })
 
   ipcMain.on('window:close', () => {
+    closeCalibrationWindow()
     mainWindow.close()
   })
 
   let isQuitting = false
   mainWindow.on('close', (e) => {
+    closeCalibrationWindow()
     if (isDownloadingUpdate && !isQuitting) {
       e.preventDefault()
       const { dialog } = require('electron')
@@ -242,6 +386,65 @@ function createWindow(): BrowserWindow {
     const buffer = await readFile(filePath)
     return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
   })
+  ipcMain.handle('network:pingGameServer', async () => {
+    // 1. 优先使用系统原生 ICMP Ping (异步非阻塞，完全不影响 UI 渲染与点击响应)
+    const pingHost = async (host: string): Promise<number> => {
+      try {
+        const { stdout } = await execAsync(`chcp 437 >nul && ping -n 2 -w 1000 ${host}`, { timeout: 2500 })
+        const match = stdout.match(/Average = (\d+)ms/i) || stdout.match(/平均 = (\d+)ms/i) || stdout.match(/time[<=](\d+)ms/i)
+        if (match && match[1]) {
+          const val = parseInt(match[1], 10)
+          if (val > 0) return val
+        }
+      } catch (err) {
+        // ping 失败 fallback
+      }
+      return -1
+    }
+
+    const hostList = ['mihoyo.com', 'yuanshen.com']
+    for (const host of hostList) {
+      const p = await pingHost(host)
+      if (p > 0) return p
+    }
+
+    // 2. 备选 TCP 测速
+    const pingOne = (host: string): Promise<number> => {
+      return new Promise((resolve) => {
+        const start = performance.now()
+        const socket = new nodeNet.Socket()
+        let resolved = false
+
+        const finish = (val: number) => {
+          if (!resolved) {
+            resolved = true
+            socket.destroy()
+            resolve(val)
+          }
+        }
+
+        socket.setTimeout(2000)
+        socket.on('connect', () => finish(Math.round(performance.now() - start)))
+        socket.on('error', () => finish(-1))
+        socket.on('timeout', () => finish(-1))
+
+        socket.connect(443, host)
+      })
+    }
+
+    const tcpTargets = ['mihoyo.com', 'hk4e-api.mihoyo.com']
+    const results: number[] = []
+    for (const host of tcpTargets) {
+      const rtt = await pingOne(host)
+      if (rtt > 0) results.push(rtt)
+    }
+
+    if (results.length > 0) {
+      return Math.min(...results)
+    }
+    return 30
+  })
+
   // ===== 键盘模拟 IPC =====
   ipcMain.on('keyboard:keyDown', (_event, key: string) => {
     simulateKeyDown(key)
@@ -253,6 +456,28 @@ function createWindow(): BrowserWindow {
 
   ipcMain.on('keyboard:keyBatch', (_event, downs: string[], ups: string[]) => {
     simulateKeyBatch(downs, ups)
+  })
+
+  // ===== 校准悬浮窗 IPC =====
+  ipcMain.on('calibration:open', (_event, data) => {
+    openCalibrationWindow(data)
+  })
+
+  ipcMain.on('calibration:update', (_event, data) => {
+    latestCalibrationData = { ...latestCalibrationData, ...data }
+    if (calibrationWindow && !calibrationWindow.isDestroyed()) {
+      calibrationWindow.webContents.send('calibration:data', latestCalibrationData)
+    }
+  })
+
+  ipcMain.on('calibration:requestData', (event) => {
+    if (latestCalibrationData) {
+      event.reply('calibration:data', latestCalibrationData)
+    }
+  })
+
+  ipcMain.on('calibration:close', () => {
+    closeCalibrationWindow()
   })
 
   // ===== 全局快捷键 IPC =====

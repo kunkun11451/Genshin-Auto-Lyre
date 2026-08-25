@@ -624,11 +624,14 @@ function App(): React.JSX.Element {
         // 主机自己加载音符
         engineRef.current.load(myNotes, parsedMidi?.totalDurationMs || 0)
 
-        // 广播播放指令 (强制 3 秒同步延迟)
-        const targetTime = networkManager.broadcastPlay(3000)
+        // 广播播放指令 (强制 3 秒同步延迟，包含游戏网络延迟补偿)
+        const delaySyncMode = useAppStore.getState().delaySyncMode
+        const myGamePing = useAppStore.getState().myGamePing || 25
+        const manualPlayerDelays = useAppStore.getState().manualPlayerDelays
+        const { hostTargetTime } = networkManager.broadcastPlay(3000, delaySyncMode, myGamePing, manualPlayerDelays)
         
-        // 主机本地等待
-        const delayMs = targetTime - networkManager.getSyncedTime()
+        // 主机本地等待实际计算出的目标时刻
+        const delayMs = hostTargetTime - networkManager.getSyncedTime()
         if (delayMs > 0) {
           setDelayDurationSec(delayMs / 1000)
           delayTimerRef.current = setTimeout(() => {

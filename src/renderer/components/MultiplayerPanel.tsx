@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Users, Wifi, LogOut, Play, Square, User, Volume2, CheckCircle2, CircleDashed, ChevronDown, ChevronUp, Check, Ban, Plus, LogIn } from 'lucide-react'
+import { Users, Wifi, LogOut, Play, Square, User, Volume2, CheckCircle2, CircleDashed, ChevronDown, ChevronUp, Check, Ban, Plus, LogIn, Sliders } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { useTranslation } from 'react-i18next'
 import { networkManager, NetworkRole, NetworkPlayer } from '../core/network-manager'
 import { mapNotes, MappedNote } from '../core/note-mapper'
 import { audioPreview, INSTRUMENT_DIR_MAP } from '../core/audio-preview'
+import { DelayOptimizationModal } from './DelayOptimizationModal'
+import { CalibrationHUD } from './CalibrationHUD'
 import './MultiplayerPanel.css'
 import startImg from '../../../resources/start.png'
 import multiplayerImg from '../../../resources/multiplayer.png'
@@ -248,10 +250,67 @@ export function MultiplayerPanel(): React.JSX.Element {
   const parsedMidi = useAppStore(state => state.parsedMidi)
   const clientTrackData = useAppStore(state => state.clientTrackData)
   const clientTotalDurationMs = useAppStore(state => state.clientTotalDurationMs)
+  const optimizeGameDelay = useAppStore(state => state.optimizeGameDelay)
+  const setOptimizeGameDelay = useAppStore(state => state.setOptimizeGameDelay)
+  const delaySyncMode = useAppStore(state => state.delaySyncMode)
+  const manualPlayerDelays = useAppStore(state => state.manualPlayerDelays)
+  const setIsCalibrating = useAppStore(state => state.setIsCalibrating)
+  const setCurrentCalibrateIndex = useAppStore(state => state.setCurrentCalibrateIndex)
+  const clientWaitingCalibration = useAppStore(state => state.clientWaitingCalibration)
+  const setClientWaitingCalibration = useAppStore(state => state.setClientWaitingCalibration)
+  const clearManualPlayerDelays = useAppStore(state => state.clearManualPlayerDelays)
+  const myGamePing = useAppStore(state => state.myGamePing)
+  const setMyGamePing = useAppStore(state => state.setMyGamePing)
 
+  const [isDelayModalOpen, setIsDelayModalOpen] = useState(false)
   const [role, setRole] = useState<NetworkRole>(networkManager.currentRole)
   const [myId, setMyId] = useState(networkManager.myId)
   const [players, setPlayers] = useState<NetworkPlayer[]>(networkManager.connectedPlayers)
+
+  // 客机校准消息监听
+  useEffect(() => {
+    networkManager.events.onCalibrationStart = () => {
+      setClientWaitingCalibration(true)
+    }
+    networkManager.events.onCalibrationStop = () => {
+      setClientWaitingCalibration(false)
+    }
+    networkManager.events.onCalibrationPulse = (targetTime) => {
+      const delayMs = targetTime - networkManager.getSyncedTime()
+      const trigger = () => {
+        window.electronAPI.keyDown('a')
+        setTimeout(() => window.electronAPI.keyUp('a'), 60)
+      }
+      if (delayMs > 0) {
+        setTimeout(trigger, delayMs)
+      } else {
+        trigger()
+      }
+    }
+  }, [setClientWaitingCalibration])
+
+  // 自动探测与游戏服务器的网络延迟 (Ping)，每 5 秒定时刷新一次
+  useEffect(() => {
+    if (role === 'none') return
+
+    const doPing = () => {
+      window.electronAPI.pingGameServer().then(ping => {
+        setMyGamePing(ping)
+        if (role === 'client') {
+          networkManager.sendGamePing(ping)
+        }
+      }).catch(err => {
+        console.error('Ping game server failed:', err)
+      })
+    }
+
+    // 首次立即测速
+    doPing()
+
+    // 之后每 5 秒自动刷新一次
+    const timer = setInterval(doPing, 5000)
+    return () => clearInterval(timer)
+  }, [role, delaySyncMode])
 
   const [joinId, setJoinId] = useState('')
   const [statusMsg, setStatusMsgState] = useState('')
@@ -924,21 +983,43 @@ export function MultiplayerPanel(): React.JSX.Element {
                           <span>{t('multiplayer.roomCodeLabel')}: <strong>{myId}</strong></span>
                           <span className="copy-tip">({t('multiplayer.clickToCopy')})</span>
                         </div>
+
                         <div className="mp-dropdown-divider"></div>
                         <div className="mp-dropdown-players">
                           <div className="mp-dropdown-player-item host">
                             <span className="player-p-index">P1</span>
                             <span className="player-p-name">{playerName || t('multiplayer.host')} <span className="player-role-tag">({t('multiplayer.hostTag')})</span></span>
+                            {delaySyncMode === 'auto' && (
+                              <span className="player-game-ping" title={t('multiplayer.gameDelayHint')}>
+                                {myGamePing !== null ? `${myGamePing}ms` : '...'}
+                              </span>
+                            )}
+                            {delaySyncMode === 'manual' && (
+                              <span className="player-game-ping" title="手动校准基准">
+                                0ms
+                              </span>
+                            )}
                             <span className="player-p-check ready"><Check size={14} /></span>
                           </div>
                           {Array.from({ length: 11 }).map((_, i) => {
                             const pIndex = i + 2
                             const p = players[i]
                             if (p) {
+                              const manualVal = manualPlayerDelays[p.id] ?? 0
                               return (
                                 <div key={p.id} className="mp-dropdown-player-item">
                                   <span className="player-p-index">P{pIndex}</span>
                                   <span className="player-p-name">{p.name}</span>
+                                  {delaySyncMode === 'auto' && (
+                                    <span className="player-game-ping" title={t('multiplayer.gameDelayHint')}>
+                                      {p.gamePing !== undefined && p.gamePing !== null ? `${p.gamePing}ms` : (p.id.startsWith('mock_') ? `${22 + (i * 5)}ms` : '...')}
+                                    </span>
+                                  )}
+                                  {delaySyncMode === 'manual' && (
+                                    <span className="player-game-ping" title="手动校准延迟">
+                                      {manualVal >= 0 ? `+${manualVal}` : manualVal}ms
+                                    </span>
+                                  )}
                                   <span className={`player-p-check ${p.ready ? 'ready' : 'not-ready'}`}><Check size={14} /></span>
                                 </div>
                               )
@@ -958,7 +1039,16 @@ export function MultiplayerPanel(): React.JSX.Element {
                   </div>
                 </div>
 
-                <div className="mp-header-right">
+                <div className="mp-header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    className="mp-btn"
+                    style={{ padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                    onClick={() => setIsDelayModalOpen(true)}
+                    title={t('delayOpt.buttonTitle') || '多人延迟优化设置'}
+                  >
+                    <Sliders size={14} />
+                    <span>{t('delayOpt.button') || '延迟优化设置'}</span>
+                  </button>
                   <button className="mp-btn disconnect-btn" onClick={handleDisconnect}>
                     <LogOut size={14} /> {t('multiplayer.disconnect')}
                   </button>
@@ -1403,6 +1493,51 @@ export function MultiplayerPanel(): React.JSX.Element {
               )}
             </div>
           </>
+        )}
+
+        {/* 延迟优化设置弹窗 */}
+        <DelayOptimizationModal
+          isOpen={isDelayModalOpen}
+          onClose={() => setIsDelayModalOpen(false)}
+          players={players}
+          onStartCalibration={() => {
+            if (players.length > 0) {
+              const firstP = players[0]
+              setCurrentCalibrateIndex(0)
+              setIsCalibrating(true)
+              networkManager.startCalibration(firstP.id)
+              window.electronAPI.openCalibrationWindow({
+                targetName: firstP.name,
+                pSlot: 'P2',
+                currentDelay: manualPlayerDelays[firstP.id] ?? 0,
+                isPlaying: false,
+                theme: useAppStore.getState().theme
+              })
+            }
+          }}
+        />
+
+        {/* 房主端右上角置顶校准悬浮窗 */}
+        {role === 'host' && (
+          <CalibrationHUD
+            players={players}
+            showToast={showTempMsg}
+          />
+        )}
+
+        {/* 客机端等待主机调试遮罩 */}
+        {role === 'client' && clientWaitingCalibration && (
+          <div className="calibration-client-overlay">
+            <div className="calibration-client-card">
+              <Sliders size={36} color="var(--text-primary, #ffffff)" />
+              <div className="calibration-client-title">
+                {t('delayOpt.clientWaitingTitle') || '主机玩家正在调试延迟'}
+              </div>
+              <div className="calibration-client-desc">
+                {t('delayOpt.clientWaitingDesc') || '请准备好风物之诗琴打开弹奏界面，将游戏切换到前台等待...'}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

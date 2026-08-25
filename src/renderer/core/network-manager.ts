@@ -14,6 +14,7 @@ export interface NetworkPlayer {
   name: string
   conn: DataConnection
   ping: number
+  gamePing?: number
   ready?: boolean
 }
 
@@ -21,12 +22,16 @@ export interface NetworkPlayer {
 export type NetworkMessage =
   | { type: 'SYNC_REQ'; clientSendTime: number }
   | { type: 'SYNC_RES'; clientSendTime: number; hostReplyTime: number }
-  | { type: 'PLAY'; targetTime: number }
+  | { type: 'PLAY'; targetTime: number; advanceMs?: number }
   | { type: 'PAUSE' }
   | { type: 'STOP' }
   | { type: 'SEEK'; timeMs: number }
   | { type: 'TRACK_DATA'; notes: MappedNote[]; totalDurationMs?: number; instrumentMode?: 'standard' | 'chord' | 'horn'; previewInstrument?: string }
   | { type: 'READY_STATE'; ready: boolean }
+  | { type: 'GAME_PING_UPDATE'; gamePing: number }
+  | { type: 'CALIBRATION_START'; targetPlayerId: string }
+  | { type: 'CALIBRATION_STOP' }
+  | { type: 'CALIBRATION_PULSE'; targetTime: number }
   | { type: 'OVERVIEW_DATA'; playerCombinedTracks: Record<string, MappedNote[]>; multiplayerPreviewInstruments: Record<string, string>; totalDurationMs: number; hostName?: string }
 
 // 事件监听接口
@@ -40,6 +45,9 @@ export interface NetworkEvents {
   onPauseCommand?: () => void
   onStopCommand?: () => void
   onSeekCommand?: (timeMs: number) => void
+  onCalibrationStart?: (targetPlayerId: string) => void
+  onCalibrationStop?: () => void
+  onCalibrationPulse?: (targetTime: number) => void
   onTrackDataReceived?: (
     notes: MappedNote[],
     totalDurationMs?: number,
@@ -105,6 +113,7 @@ export class NetworkManager {
       name: `P${i + 2}`,
       conn: { send: () => { } } as any,
       ping: Math.floor(Math.random() * 15) + 5,
+      gamePing: 22 + (i * 5),
       ready: true
     }))
 
@@ -209,11 +218,79 @@ export class NetworkManager {
     }
   }
 
-  /** 广播播放命令 */
-  broadcastPlay(delayMs: number = 3000): number {
+  /** 广播播放命令 (包含游戏延迟前馈补偿) */
+  broadcastPlay(
+    delayMs: number = 3000,
+    delaySyncMode: 'off' | 'auto' | 'manual' = 'off',
+    hostGamePing: number = 25,
+    manualPlayerDelays: Record<string, number> = {}
+  ): { hostTargetTime: number } {
+    if (this.role !== 'host') return { hostTargetTime: 0 }
+    const baseTargetTime = Date.now() + delayMs
+
+    if (delaySyncMode === 'off') {
+      this.broadcast({ type: 'PLAY', targetTime: baseTargetTime })
+      return { hostTargetTime: baseTargetTime }
+    }
+
+    if (delaySyncMode === 'manual') {
+      // 手动校准模式：以房主为基准 (0ms)，客机根据自身校准的延迟提前或延后
+      for (const player of this.players.values()) {
+        if (player.conn.open) {
+          const advanceMs = manualPlayerDelays[player.id] || 0
+          player.conn.send({ type: 'PLAY', targetTime: baseTargetTime, advanceMs })
+        }
+      }
+      return { hostTargetTime: baseTargetTime }
+    }
+
+    // 自动 Ping 模式
+    const hostDelay = hostGamePing / 2
+    let maxDelay = hostDelay
+    const playerDelays = new Map<string, number>()
+
+    for (const player of this.players.values()) {
+      const pDelay = (player.gamePing || 25) / 2
+      playerDelays.set(player.id, pDelay)
+      if (pDelay > maxDelay) {
+        maxDelay = pDelay
+      }
+    }
+
+    // 给每个客机发送各自根据 maxDelay 计算的提前量
+    for (const player of this.players.values()) {
+      if (player.conn.open) {
+        const pDelay = playerDelays.get(player.id) || 12.5
+        const advanceMs = Math.round(maxDelay - pDelay)
+        player.conn.send({ type: 'PLAY', targetTime: baseTargetTime, advanceMs })
+      }
+    }
+
+    // 房主自身的实际启动时间
+    const hostAdvanceMs = Math.round(maxDelay - hostDelay)
+    return { hostTargetTime: baseTargetTime - hostAdvanceMs }
+  }
+
+  /** 开始对音校准 (通知所有客机进入校准等待状态) */
+  startCalibration(targetPlayerId: string) {
+    if (this.role !== 'host') return
+    this.broadcast({ type: 'CALIBRATION_START', targetPlayerId })
+  }
+
+  /** 停止对音校准 (通知所有客机退出等待状态) */
+  stopCalibration() {
+    if (this.role !== 'host') return
+    this.broadcast({ type: 'CALIBRATION_STOP' })
+  }
+
+  /** 房主发送 1s 循环对音脉冲给指定客机 */
+  sendCalibrationPulse(targetPlayerId: string, advanceMs: number = 0): number {
     if (this.role !== 'host') return 0
-    const targetTime = Date.now() + delayMs
-    this.broadcast({ type: 'PLAY', targetTime })
+    const targetTime = Date.now() + 300
+    const player = this.players.get(targetPlayerId)
+    if (player && player.conn.open) {
+      player.conn.send({ type: 'CALIBRATION_PULSE', targetTime: targetTime - advanceMs })
+    }
     return targetTime
   }
 
@@ -243,6 +320,12 @@ export class NetworkManager {
   sendReadyState(ready: boolean) {
     if (this.role !== 'client' || !this.hostConn || !this.hostConn.open) return
     this.hostConn.send({ type: 'READY_STATE', ready })
+  }
+
+  /** 给主机发送自身与游戏服务器的网络延迟 */
+  sendGamePing(gamePing: number) {
+    if (this.role !== 'client' || !this.hostConn || !this.hostConn.open) return
+    this.hostConn.send({ type: 'GAME_PING_UPDATE', gamePing })
   }
 
   private setRole(role: NetworkRole) {
@@ -299,6 +382,12 @@ export class NetworkManager {
           player.ready = msg.ready
           this.notifyPlayersChange()
         }
+      } else if (msg.type === 'GAME_PING_UPDATE') {
+        const player = this.players.get(conn.peer)
+        if (player) {
+          player.gamePing = msg.gamePing
+          this.notifyPlayersChange()
+        }
       }
     })
 
@@ -349,7 +438,8 @@ export class NetworkManager {
         this.timeOffset = this.timeOffset * 0.8 + newOffset * 0.2
       }
     } else if (msg.type === 'PLAY') {
-      this.events.onPlayCommand?.(msg.targetTime)
+      const realTarget = msg.targetTime - (msg.advanceMs || 0)
+      this.events.onPlayCommand?.(realTarget)
     } else if (msg.type === 'PAUSE') {
       this.events.onPauseCommand?.()
     } else if (msg.type === 'STOP') {
@@ -358,6 +448,12 @@ export class NetworkManager {
       this.events.onSeekCommand?.(msg.timeMs)
     } else if (msg.type === 'TRACK_DATA') {
       this.events.onTrackDataReceived?.(msg.notes, msg.totalDurationMs, msg.instrumentMode, msg.previewInstrument)
+    } else if (msg.type === 'CALIBRATION_START') {
+      this.events.onCalibrationStart?.(msg.targetPlayerId)
+    } else if (msg.type === 'CALIBRATION_STOP') {
+      this.events.onCalibrationStop?.()
+    } else if (msg.type === 'CALIBRATION_PULSE') {
+      this.events.onCalibrationPulse?.(msg.targetTime)
     } else if (msg.type === 'OVERVIEW_DATA') {
       this.events.onOverviewDataReceived?.(msg.playerCombinedTracks, msg.multiplayerPreviewInstruments, msg.totalDurationMs, msg.hostName)
     }

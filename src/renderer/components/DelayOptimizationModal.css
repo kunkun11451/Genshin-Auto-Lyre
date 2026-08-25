@@ -1,0 +1,300 @@
+/* 延迟优化设置弹窗样式（黑白灰极致简洁风格） */
+.delay-opt-panel {
+  width: 580px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.delay-opt-content {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.delay-opt-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.delay-opt-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+/* 选项卡片组 */
+.delay-mode-card {
+  background: var(--group-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.delay-mode-card:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--hover-bg);
+}
+
+.delay-mode-card.active {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.delay-mode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.delay-mode-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delay-radio-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--input-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.delay-mode-card.active .delay-radio-circle {
+  border-color: #ffffff;
+}
+
+.delay-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.delay-mode-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.delay-mode-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-left: 28px;
+}
+
+/* 展开区域：操作指引与玩家列表 */
+.manual-delay-expanded {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--input-border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: fadeIn 0.2s ease-out;
+  cursor: default;
+}
+
+/* 操作指引步骤盒子 */
+.manual-steps-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.manual-steps-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.manual-step-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.manual-step-num {
+  color: #d1d5db;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.manual-step-item code {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+  color: #ffffff;
+}
+
+/* 玩家延迟展示列表 */
+.manual-players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manual-players-list-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+
+.manual-player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.manual-player-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.manual-player-p {
+  font-size: 10px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.manual-player-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.manual-player-delay-val {
+  font-family: monospace;
+  font-weight: bold;
+  color: #e5e7eb;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+/* 底部操作栏 */
+.delay-opt-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  background: var(--header-bg);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.delay-start-calib-btn {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #52525b;
+  background: #27272a;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.delay-start-calib-btn:hover:not(:disabled) {
+  background: #3f3f46;
+  border-color: #71717a;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+}
+
+.delay-start-calib-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 浅色模式细节 */
+.light .delay-mode-card:hover {
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.light .delay-mode-card.active {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.light .delay-mode-card.active .delay-radio-circle {
+  border-color: #111827;
+}
+
+.light .delay-radio-dot {
+  background: #111827;
+}
+
+.light .manual-steps-box {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.light .manual-steps-title {
+  color: #1f2937;
+}
+
+.light .manual-step-num {
+  color: #4b5563;
+}
+
+.light .manual-player-row {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.light .manual-player-delay-val {
+  color: #111827;
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.light .manual-step-item code {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #111827;
+}
+
+.light .delay-start-calib-btn {
+  background: #18181b;
+  border-color: #27272a;
+}
+
+.light .delay-start-calib-btn:hover:not(:disabled) {
+  background: #27272a;
+}

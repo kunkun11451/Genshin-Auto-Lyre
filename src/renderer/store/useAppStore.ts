@@ -97,7 +97,23 @@ interface AppState {
   multiplayerRole: 'none' | 'host' | 'client'
   setMultiplayerRole: (role: 'none' | 'host' | 'client') => void
   multiplayerHostName: string
-  setMultiplayerHostName: (name: string) => void
+  optimizeGameDelay: boolean
+  setOptimizeGameDelay: (enabled: boolean) => void
+  delaySyncMode: 'off' | 'auto' | 'manual'
+  setDelaySyncMode: (mode: 'off' | 'auto' | 'manual') => void
+  manualPlayerDelays: Record<string, number>
+  setManualPlayerDelay: (playerId: string, delayMs: number) => void
+  clearManualPlayerDelays: () => void
+  isCalibrating: boolean
+  setIsCalibrating: (isCalibrating: boolean) => void
+  currentCalibrateIndex: number
+  setCurrentCalibrateIndex: (index: number) => void
+  isLoopPulsePlaying: boolean
+  setIsLoopPulsePlaying: (isPlaying: boolean) => void
+  clientWaitingCalibration: boolean
+  setClientWaitingCalibration: (waiting: boolean) => void
+  myGamePing: number | null
+  setMyGamePing: (ping: number | null) => void
 
   // ===== 设置 =====
   instrumentMode: 'standard' | 'chord' | 'horn'
@@ -204,6 +220,14 @@ export const useAppStore = create<AppState>()(
       multiplayerCombinedTracks: {},
       multiplayerRole: 'none',
       multiplayerHostName: '',
+      optimizeGameDelay: false,
+      delaySyncMode: 'off',
+      manualPlayerDelays: {},
+      isCalibrating: false,
+      currentCalibrateIndex: 0,
+      isLoopPulsePlaying: false,
+      clientWaitingCalibration: false,
+      myGamePing: null,
 
       instrumentMode: 'standard',
       blackKeyConfig: { ...DEFAULT_BLACK_KEY_CONFIG },
@@ -324,7 +348,20 @@ export const useAppStore = create<AppState>()(
       setPlayerName: (name) => set({ playerName: name }),
       setMultiplayerCombinedTracks: (tracks) => set({ multiplayerCombinedTracks: tracks }),
       setMultiplayerRole: (role) => set({ multiplayerRole: role }),
-      setMultiplayerHostName: (name) => set({ multiplayerHostName: name }),
+      setOptimizeGameDelay: (enabled) => set({ optimizeGameDelay: enabled, delaySyncMode: enabled ? 'auto' : 'off' }),
+      setDelaySyncMode: (mode) => set({ delaySyncMode: mode, optimizeGameDelay: mode === 'auto' }),
+      setManualPlayerDelay: (playerId, delayMs) => set((state) => ({
+        manualPlayerDelays: {
+          ...state.manualPlayerDelays,
+          [playerId]: delayMs
+        }
+      })),
+      clearManualPlayerDelays: () => set({ manualPlayerDelays: {} }),
+      setIsCalibrating: (isCalibrating) => set({ isCalibrating }),
+      setCurrentCalibrateIndex: (index) => set({ currentCalibrateIndex: index }),
+      setIsLoopPulsePlaying: (isPlaying) => set({ isLoopPulsePlaying: isPlaying }),
+      setClientWaitingCalibration: (waiting) => set({ clientWaitingCalibration: waiting }),
+      setMyGamePing: (ping) => set({ myGamePing: ping }),
 
       setInstrumentMode: (mode) => set({ instrumentMode: mode }),
 
@@ -388,6 +425,8 @@ export const useAppStore = create<AppState>()(
         playerName: state.playerName,
         multiplayerInstrumentModes: state.multiplayerInstrumentModes,
         multiplayerPreviewInstruments: state.multiplayerPreviewInstruments,
+        optimizeGameDelay: state.optimizeGameDelay,
+        delaySyncMode: state.delaySyncMode,
         language: state.language
       })
     }
