@@ -255,8 +255,13 @@ function App(): React.JSX.Element {
       if (previewInstrument) {
         useAppStore.getState().setAudioPreviewInstrument(previewInstrument)
       }
-      const totalDuration = totalDurationMs || useAppStore.getState().parsedMidi?.totalDurationMs || 300000 
-      engineRef.current?.load(notes, totalDuration)
+      const totalDuration = totalDurationMs || useAppStore.getState().clientTotalDurationMs || useAppStore.getState().parsedMidi?.totalDurationMs || 300000 
+      const isPlayingOrPending = engineRef.current?.getState() === 'playing' || delayTimerRef.current !== null
+      if (isPlayingOrPending) {
+        engineRef.current?.hotLoad(notes, totalDuration)
+      } else {
+        engineRef.current?.load(notes, totalDuration)
+      }
     }
 
     networkManager.events.onOverviewDataReceived = (combinedTracks, previewInstruments, totalDurationMs, hostName) => {
@@ -502,6 +507,9 @@ function App(): React.JSX.Element {
   // === 映射参数改变或新文件解析后，重新映射 ===
   useEffect(() => {
     const handleMapNotes = (state: ReturnType<typeof useAppStore.getState>, isHot: boolean = false) => {
+      // 客机端音轨由网络专属下发管理，不参与单机本地映射与清空
+      if (state.multiplayerRole === 'client') return
+
       if (!state.parsedMidi) {
         if (state.mappedNotes.length > 0) {
           state.setMappedNotes([])
@@ -584,50 +592,34 @@ function App(): React.JSX.Element {
           return
         }
 
-        const assignments = state.multiplayerAssignments
-        const playerToTracks = new Map<string, number[]>()
+        // 房主获取分配给自己的音符 (优先取已组装好的 combinedTracks['me'])
+        let myNotes = state.multiplayerCombinedTracks['me'] || []
         
-        parsedMidi?.tracks.forEach((_, idx) => {
-          const pid = assignments[idx] || 'me'
-          if (pid !== 'none') {
-            if (!playerToTracks.has(pid)) playerToTracks.set(pid, [])
-            playerToTracks.get(pid)!.push(idx)
-          }
-        })
-
-        // 主机自己的音符
-        const myNotes: any[] = []
-
-        for (const [pid, trackIndices] of playerToTracks.entries()) {
-          const combinedParsedNotes: any[] = []
-          for (const idx of trackIndices) {
-            if (parsedMidi && parsedMidi.tracks[idx]) {
-              combinedParsedNotes.push(...parsedMidi.tracks[idx])
+        if (myNotes.length === 0 && parsedMidi) {
+          const assignments = state.multiplayerAssignments
+          const meParsedNotes: any[] = []
+          parsedMidi.tracks.forEach((track, idx) => {
+            const pid = assignments[idx] || 'me'
+            if (pid === 'me') {
+              meParsedNotes.push(...track)
             }
-          }
-          
-          const mapped = mapNotes(combinedParsedNotes, {
+          })
+          myNotes = mapNotes(meParsedNotes, {
             blackKeyConfig: state.blackKeyConfig,
             transpose: state.transpose,
             minInterval: state.minInterval,
             minDuration: state.minDuration,
             instrumentMode: state.instrumentMode
           })
-          
-          if (pid === 'me') {
-            myNotes.push(...mapped)
-          } else {
-            networkManager.sendTrackDataToPlayer(pid, mapped, parsedMidi?.totalDurationMs)
-          }
         }
 
         // 主机自己加载音符
-        engineRef.current.load(myNotes, parsedMidi?.totalDurationMs || 0)
+        engineRef.current.load(myNotes, state.parsedMidi?.totalDurationMs || 0)
 
         // 广播播放指令 (强制 3 秒同步延迟，包含游戏网络延迟补偿)
-        const delaySyncMode = useAppStore.getState().delaySyncMode
-        const myGamePing = useAppStore.getState().myGamePing || 25
-        const manualPlayerDelays = useAppStore.getState().manualPlayerDelays
+        const delaySyncMode = state.delaySyncMode
+        const myGamePing = state.myGamePing || 25
+        const manualPlayerDelays = state.manualPlayerDelays
         const { hostTargetTime } = networkManager.broadcastPlay(3000, delaySyncMode, myGamePing, manualPlayerDelays)
         
         // 主机本地等待实际计算出的目标时刻
@@ -642,7 +634,7 @@ function App(): React.JSX.Element {
         } else {
           engineRef.current.play()
         }
-        
+        return
       } else if (
         currentDelaySec > 0 && 
         !isRealShortcut && 
