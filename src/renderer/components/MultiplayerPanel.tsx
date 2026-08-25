@@ -1044,10 +1044,10 @@ export function MultiplayerPanel(): React.JSX.Element {
                     className="mp-btn"
                     style={{ padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}
                     onClick={() => setIsDelayModalOpen(true)}
-                    title={t('delayOpt.buttonTitle') || '多人延迟优化设置'}
+                    title={t('delayOpt.buttonTitle')}
                   >
                     <Sliders size={14} />
-                    <span>{t('delayOpt.button') || '延迟优化设置'}</span>
+                    <span>{t('delayOpt.button')}</span>
                   </button>
                   <button className="mp-btn disconnect-btn" onClick={handleDisconnect}>
                     <LogOut size={14} /> {t('multiplayer.disconnect')}
@@ -1531,10 +1531,10 @@ export function MultiplayerPanel(): React.JSX.Element {
             <div className="calibration-client-card">
               <Sliders size={36} color="var(--text-primary, #ffffff)" />
               <div className="calibration-client-title">
-                {t('delayOpt.clientWaitingTitle') || '主机玩家正在调试延迟'}
+                {t('delayOpt.clientWaitingTitle')}
               </div>
               <div className="calibration-client-desc">
-                {t('delayOpt.clientWaitingDesc') || '请准备好风物之诗琴打开弹奏界面，将游戏切换到前台等待...'}
+                {t('delayOpt.clientWaitingDesc')}
               </div>
             </div>
           </div>

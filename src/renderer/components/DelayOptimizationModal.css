@@ -25,6 +25,36 @@
   border-radius: 3px;
 }
 
+/* 顶部提示横条（灰白黑极简风格） */
+.delay-opt-top-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.delay-opt-notice-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-primary);
+}
+
+.delay-opt-notice-text {
+  flex: 1;
+}
+
+.light .delay-opt-top-notice {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #4b5563;
+}
+
 /* 选项卡片组 */
 .delay-mode-card {
   background: var(--group-bg);

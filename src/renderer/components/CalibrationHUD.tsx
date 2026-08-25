@@ -78,16 +78,28 @@ export function CalibrationHUD({ players = [], showToast, isStandalone = false }
     })
   }, [isStandalone, isCalibrating, targetPlayer?.id, targetPlayer?.name, currentCalibrateIndex, currentDelay, isLoopPulsePlaying, storeTheme])
 
-  // 1s 循环同音脉冲触发 (仅在主窗口执行按键与网络广播)
+  // 1s 循环同音脉冲触发 (仅在主窗口执行按键与网络广播，参考正式演奏的时间戳精准同步机制)
   useEffect(() => {
     if (isStandalone || !isCalibrating || !isLoopPulsePlaying || !targetPlayer) return
 
     const triggerPulse = () => {
-      networkManager.sendCalibrationPulse(targetPlayer.id, currentDelayRef.current)
-      window.electronAPI.keyDown('a')
-      setTimeout(() => {
-        window.electronAPI.keyUp('a')
-      }, 60)
+      // 1. 发送网络脉冲并获取双方未来的统一目标时刻 (预留 500ms 宽裕缓冲)
+      const { hostTargetTime } = networkManager.sendCalibrationPulse(targetPlayer.id, currentDelayRef.current, 500)
+      
+      // 2. 房主与客机基于同一 NTP 同步时钟，精准等待到达该未来时刻再物理按下 A 键
+      const delayMs = hostTargetTime - networkManager.getSyncedTime()
+      const pressKey = () => {
+        window.electronAPI.keyDown('a')
+        setTimeout(() => {
+          window.electronAPI.keyUp('a')
+        }, 60)
+      }
+
+      if (delayMs > 0) {
+        setTimeout(pressKey, delayMs)
+      } else {
+        pressKey()
+      }
     }
 
     triggerPulse()
@@ -114,7 +126,7 @@ export function CalibrationHUD({ players = [], showToast, isStandalone = false }
           showToast(t('delayOpt.savedAndNext', {
             curr: `P${currentCalibrateIndex + 2}`,
             next: `P${nextIdx + 2}`
-          }) || `已保存 P${currentCalibrateIndex + 2} 设置，已切换至 P${nextIdx + 2}`)
+          }))
         }
       } else {
         networkManager.stopCalibration()
@@ -122,7 +134,7 @@ export function CalibrationHUD({ players = [], showToast, isStandalone = false }
         setIsLoopPulsePlaying(false)
         window.electronAPI.closeCalibrationWindow()
         if (showToast) {
-          showToast(t('delayOpt.calibrationComplete') || '已完成所有玩家延迟设置并保存')
+          showToast(t('delayOpt.calibrationComplete'))
         }
       }
     } else if (action === 'CtrlEnter') {
@@ -131,7 +143,7 @@ export function CalibrationHUD({ players = [], showToast, isStandalone = false }
       setIsLoopPulsePlaying(false)
       window.electronAPI.closeCalibrationWindow()
       if (showToast) {
-        showToast(t('delayOpt.calibrationComplete') || '已完成所有玩家延迟设置并保存')
+        showToast(t('delayOpt.calibrationComplete'))
       }
     }
   }
@@ -215,19 +227,19 @@ export function CalibrationHUD({ players = [], showToast, isStandalone = false }
         <div className="calibration-hud-header">
           <div className="calibration-hud-title">
             <Sliders size={14} color="currentColor" />
-            <span>{t('delayOpt.hudTitle') || '延迟调整'}</span>
+            <span>{t('delayOpt.hudTitle')}</span>
           </div>
           <button
             className="calibration-hud-close-btn"
             onClick={() => window.electronAPI.closeCalibrationWindow()}
-            title={t('settings.close') || '关闭'}
+            title={t('settings.close')}
           >
             <X size={14} />
           </button>
         </div>
 
         <div className="calibration-hud-target">
-          <span>{t('delayOpt.adjustingTarget') || '正在对玩家进行调整'}：</span>
+          <span>{t('delayOpt.adjustingTarget')}：</span>
           <span className="calibration-hud-target-name">{displayName}</span>
         </div>
 
@@ -240,20 +252,20 @@ export function CalibrationHUD({ players = [], showToast, isStandalone = false }
 
         <div className={`calibration-hud-pulse-status ${data.isPlaying ? 'playing' : 'paused'}`}>
           {data.isPlaying ? <Volume2 size={12} /> : <Square size={10} />}
-          <span>{data.isPlaying ? (t('delayOpt.loopPlaying') || '正在循环同音弹奏 (1s/次)') : (t('delayOpt.loopPaused') || '循环弹奏已暂停')}</span>
+          <span>{data.isPlaying ? t('delayOpt.loopPlaying') : t('delayOpt.loopPaused')}</span>
         </div>
 
         <div className="calibration-hud-shortcuts">
           <div className="calibration-hud-shortcut-row">
-            <span>{t('delayOpt.shortcutHome') || '开始/暂停 1s 循环'}</span>
+            <span>{t('delayOpt.shortcutHome')}</span>
             <kbd className="calibration-hud-kbd">Home</kbd>
           </div>
           <div className="calibration-hud-shortcut-row">
-            <span>{t('delayOpt.shortcutTune') || '微调延迟 (±1ms)'}</span>
+            <span>{t('delayOpt.shortcutTune')}</span>
             <span><kbd className="calibration-hud-kbd">+</kbd> <kbd className="calibration-hud-kbd">-</kbd></span>
           </div>
           <div className="calibration-hud-shortcut-row">
-            <span>{t('delayOpt.shortcutNext') || '保存并切换下一位'}</span>
+            <span>{t('delayOpt.shortcutNext')}</span>
             <kbd className="calibration-hud-kbd">Enter</kbd>
           </div>
           <div className="calibration-hud-shortcut-row">

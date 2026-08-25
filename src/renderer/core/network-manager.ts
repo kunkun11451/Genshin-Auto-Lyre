@@ -284,14 +284,14 @@ export class NetworkManager {
   }
 
   /** 房主发送 1s 循环对音脉冲给指定客机 */
-  sendCalibrationPulse(targetPlayerId: string, advanceMs: number = 0): number {
-    if (this.role !== 'host') return 0
-    const targetTime = Date.now() + 300
+  sendCalibrationPulse(targetPlayerId: string, advanceMs: number = 0, bufferMs: number = 500): { hostTargetTime: number } {
+    if (this.role !== 'host') return { hostTargetTime: 0 }
+    const baseTargetTime = Date.now() + bufferMs
     const player = this.players.get(targetPlayerId)
     if (player && player.conn.open) {
-      player.conn.send({ type: 'CALIBRATION_PULSE', targetTime: targetTime - advanceMs })
+      player.conn.send({ type: 'CALIBRATION_PULSE', targetTime: baseTargetTime - advanceMs })
     }
-    return targetTime
+    return { hostTargetTime: baseTargetTime }
   }
 
   /** 广播停止命令 */

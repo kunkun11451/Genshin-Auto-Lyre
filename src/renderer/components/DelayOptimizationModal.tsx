@@ -69,15 +69,23 @@ export function DelayOptimizationModal({
         <div className="settings-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sliders size={18} />
-            <h2>{t('delayOpt.title') || '多人延迟优化设置'}</h2>
+            <h2>{t('delayOpt.title')}</h2>
           </div>
-          <button className="btn-close" onClick={onClose} title={t('settings.close') || '关闭'}>
+          <button className="btn-close" onClick={onClose} title={t('settings.close')}>
             <X size={20} />
           </button>
         </div>
 
         {/* 内容区 */}
         <div className="delay-opt-content">
+          {/* 顶部多人合奏模式提示 */}
+          <div className="delay-opt-top-notice">
+            <Info size={16} className="delay-opt-notice-icon" />
+            <div className="delay-opt-notice-text">
+              {t('delayOpt.topNotice')}
+            </div>
+          </div>
+
           {/* 选项 1：自动 Ping 探测与补偿 */}
           <div
             className={`delay-mode-card ${delaySyncMode === 'auto' ? 'active' : ''}`}
@@ -89,13 +97,13 @@ export function DelayOptimizationModal({
                   {delaySyncMode === 'auto' && <div className="delay-radio-dot" />}
                 </div>
                 <div className="delay-mode-title">
-                  {t('delayOpt.autoModeTitle') || '根据与游戏服务器延迟优化同步 (自动探测)'}
+                  {t('delayOpt.autoModeTitle')}
                 </div>
               </div>
               <Wifi size={16} color="var(--text-secondary)" />
             </div>
             <div className="delay-mode-desc">
-              {t('delayOpt.autoModeDesc') || '各玩家自动测量与米哈游游戏服务器的网络延迟 (Ping)，房主发起合奏时自动计算前馈提前量，使所有声音数据包同一微秒抵达游戏服务器。'}
+              {t('delayOpt.autoModeDesc')}
             </div>
           </div>
 
@@ -110,13 +118,13 @@ export function DelayOptimizationModal({
                   {delaySyncMode === 'manual' && <div className="delay-radio-dot" />}
                 </div>
                 <div className="delay-mode-title">
-                  {t('delayOpt.manualModeTitle') || '手动调整声音延迟 (耳听对音校准)'}
+                  {t('delayOpt.manualModeTitle')}
                 </div>
               </div>
               <Volume2 size={16} color="var(--text-secondary)" />
             </div>
             <div className="delay-mode-desc">
-              {t('delayOpt.manualModeDesc') || '房主与各位在线客机一对一触发 1 秒循环同音弹奏，房主在游戏里耳听微调延迟直到两音完全重合，实现极致精密的现场同步效果。'}
+              {t('delayOpt.manualModeDesc')}
             </div>
 
             {/* 选中后展开内容 */}
@@ -126,23 +134,23 @@ export function DelayOptimizationModal({
                 <div className="manual-steps-box">
                   <div className="manual-steps-title">
                     <Info size={14} />
-                    <span>{t('delayOpt.stepsTitle') || '校准操作步骤指引'}</span>
+                    <span>{t('delayOpt.stepsTitle')}</span>
                   </div>
                   <div className="manual-step-item">
                     <span className="manual-step-num">1.</span>
-                    <span>{t('delayOpt.step1') || '点击下方【开始调整延迟】，客机屏幕将提示进入等待，房主右上角弹出小悬浮窗。'}</span>
+                    <span>{t('delayOpt.step1')}</span>
                   </div>
                   <div className="manual-step-item">
                     <span className="manual-step-num">2.</span>
-                    <span>{t('delayOpt.step2') || '按 <code>Home</code> 键开始/暂停 1s 循环同音弹奏（双方风物之诗琴 A 键）。'}</span>
+                    <span>{t('delayOpt.step2')}</span>
                   </div>
                   <div className="manual-step-item">
                     <span className="manual-step-num">3.</span>
-                    <span>{t('delayOpt.step3') || '按 <code>+</code> / <code>-</code> 键微调该玩家延迟（±1ms 实时反映）。'}</span>
+                    <span>{t('delayOpt.step3')}</span>
                   </div>
                   <div className="manual-step-item">
                     <span className="manual-step-num">4.</span>
-                    <span>{t('delayOpt.step4') || '听准两音重合后按 <code>Enter</code> 保存并切换下一位；全部完成后按 <code>Ctrl+Enter</code> 退出。'}</span>
+                    <span>{t('delayOpt.step4')}</span>
                   </div>
                 </div>
 
@@ -150,11 +158,11 @@ export function DelayOptimizationModal({
                 <div className="manual-players-list">
                   <div className="manual-players-list-title">
                     <Users size={12} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 4 }} />
-                    <span>{t('delayOpt.playersListTitle') || '当前在线客机延迟配置'}：</span>
+                    <span>{t('delayOpt.playersListTitle')}：</span>
                   </div>
                   {players.length === 0 ? (
                     <div style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic', padding: '6px 0' }}>
-                      {t('delayOpt.noClients') || '当前房间暂无客机玩家加入'}
+                      {t('delayOpt.noClients')}
                     </div>
                   ) : (
                     players.map((p, idx) => {
@@ -187,14 +195,14 @@ export function DelayOptimizationModal({
                 onStartCalibration()
               }}
               disabled={players.length === 0}
-              title={players.length === 0 ? (t('delayOpt.noClientsToCalibrate') || '需要至少一位客机玩家才能开始调试') : ''}
+              title={players.length === 0 ? t('delayOpt.noClientsToCalibrate') : ''}
             >
               <Play size={14} />
-              <span>{t('delayOpt.startCalibBtn') || '开始调整延迟'}</span>
+              <span>{t('delayOpt.startCalibBtn')}</span>
             </button>
           ) : (
             <button className="mp-btn" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px' }}>
-              {t('settings.close') || '确定'}
+              {t('settings.close')}
             </button>
           )}
         </div>

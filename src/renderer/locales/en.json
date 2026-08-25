@@ -86,7 +86,7 @@
   },
   "multiplayer": {
     "title": "Multiplayer Ensemble",
-    "lobbyIntro": "Multiplayer mode connects up to 12 players via P2P for synchronized playing. Create a room as a host to assign MIDI tracks, select instruments, and sync start signals. Join as a client using a room code and wait for the host's arrangement. In-game, selecting the 'Multiplayer ensemble' mode when equipping an instrument can help reduce audio latency.",
+    "lobbyIntro": "Multiplayer mode connects up to 12 players via P2P for synchronized playing. Create a room as a host to assign MIDI tracks, select instruments, and sync start signals. Join as a client using a room code and wait for the host's arrangement.",
     "nickname": "Player Nickname",
     "nicknameHint": "Please set a name so others can identify you during track assignment.",
     "nicknamePlaceholder": "Enter name",
@@ -171,6 +171,7 @@
     "title": "Multiplayer Delay Optimization Settings",
     "button": "Delay Optimization",
     "buttonTitle": "Multiplayer Delay Optimization Settings",
+    "topNotice": "When selecting 'Multiplayer Ensemble' in-game, the game automatically optimizes latency. If this mode is unavailable in UGC lobbies, try the following two optimization methods.",
     "autoModeTitle": "Optimize sync based on each player's game server delay (Auto Detect)",
     "autoModeDesc": "Measures ping between each player and MiHoYo servers. Calculates feed-forward advance offset so all note packets arrive at the server at the exact same moment.",
     "manualModeTitle": "Manual Sound Delay Calibration (Ear Tuning)",
