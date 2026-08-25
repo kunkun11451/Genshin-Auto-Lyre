@@ -99,12 +99,14 @@ export class NetworkManager {
     this.cleanup()
     this.setRole('host')
 
-    // 模拟 3 个就绪玩家
-    const mockPlayers: NetworkPlayer[] = [
-      { id: 'mock_1', name: 'P2', conn: { send: () => { } } as any, ping: 12, ready: true },
-      { id: 'mock_2', name: 'P3', conn: { send: () => { } } as any, ping: 8, ready: true },
-      { id: 'mock_3', name: 'P4', conn: { send: () => { } } as any, ping: 15, ready: true },
-    ]
+    // 模拟 11 个就绪玩家 (P2 ~ P12)，共计 12 人调试
+    const mockPlayers: NetworkPlayer[] = Array.from({ length: 11 }).map((_, i) => ({
+      id: `mock_${i + 1}`,
+      name: `P${i + 2}`,
+      conn: { send: () => { } } as any,
+      ping: Math.floor(Math.random() * 15) + 5,
+      ready: true
+    }))
 
     mockPlayers.forEach(p => this.players.set(p.id, p))
     this.notifyPlayersChange()

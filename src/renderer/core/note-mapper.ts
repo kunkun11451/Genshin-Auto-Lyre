@@ -81,8 +81,8 @@ export const DEFAULT_BLACK_KEY_CONFIG: BlackKeyConfig = {
 export const DEFAULT_MAPPER_OPTIONS: MapperOptions = {
   blackKeyConfig: DEFAULT_BLACK_KEY_CONFIG,
   transpose: 0,
-  minInterval: 30,
-  minDuration: 50,
+  minInterval: 0,
+  minDuration: 10,
   instrumentMode: 'standard'
 }
 
@@ -314,8 +314,8 @@ export function mapNotes(
   const deduped = deduplicateNotes(result, options.minInterval)
 
   // 第五步：强制分离同键连续音符，防止游戏吞键
-  enforceMinimumGap(deduped, 50) // 确保同一个键的前后抬起与按下至少间隔 50ms
-
+  enforceMinimumGap(deduped, 68) // 确保同一个键的前后抬起与按下至少间隔 68ms
+  
   return deduped
 }
 
@@ -323,7 +323,7 @@ export function mapNotes(
  * 去重：同一时间窗口内（±minInterval），同一键只保留力度最大的音符
  */
 function deduplicateNotes(notes: MappedNote[], minInterval: number): MappedNote[] {
-  if (notes.length === 0) return []
+  if (notes.length === 0 || minInterval <= 0) return notes
 
   const result: MappedNote[] = []
   // 用 Map 记录每个键最近一次被加入的时间

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Users, Wifi, LogOut, Play, Square, User, Volume2, CheckCircle2, CircleDashed, ChevronDown, Check, Ban, Plus, LogIn } from 'lucide-react'
+import { Users, Wifi, LogOut, Play, Square, User, Volume2, CheckCircle2, CircleDashed, ChevronDown, ChevronUp, Check, Ban, Plus, LogIn } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { useTranslation } from 'react-i18next'
 import { networkManager, NetworkRole, NetworkPlayer } from '../core/network-manager'
@@ -92,6 +92,154 @@ function GlobalProgressLine({ totalDurationMs }: { totalDurationMs: number }) {
         zIndex: 10
       }}
     />
+  )
+}
+
+/** 单个音轨的分配按钮组组件（各音轨独立翻页） */
+function TrackAssignGroup({
+  trackIndex,
+  currentAssign,
+  playerName,
+  players,
+  playbackState,
+  onAssign,
+  t
+}: {
+  trackIndex: number
+  currentAssign: string
+  playerName: string
+  players: NetworkPlayer[]
+  playbackState: string
+  onAssign: (trackIndex: number, pid: string) => void
+  t: any
+}) {
+  // 根据当前分配的目标，初次渲染定位到对应页码
+  const getInitialPage = () => {
+    if (!currentAssign || currentAssign === 'none' || currentAssign === 'me') return 0
+    const pIdx = players.findIndex(p => p.id === currentAssign)
+    if (pIdx >= 0) {
+      return Math.min(2, Math.floor((pIdx + 1) / 4))
+    }
+    return 0
+  }
+
+  const [page, setPage] = useState<number>(getInitialPage)
+  const lastWheelTimeRef = useRef<number>(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handlePageChange = (delta: number) => {
+    setPage(prev => {
+      const next = prev + delta
+      if (next < 0) return 2
+      if (next > 2) return 0
+      return next
+    })
+  }
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const handleNativeWheel = (e: WheelEvent) => {
+      // 阻止外层轨道列表容器和页面滚动
+      e.preventDefault()
+      e.stopPropagation()
+
+      const now = performance.now()
+      if (now - lastWheelTimeRef.current < 160) return
+      if (Math.abs(e.deltaY) < 6) return
+
+      lastWheelTimeRef.current = now
+      if (e.deltaY > 0) {
+        handlePageChange(1)
+      } else {
+        handlePageChange(-1)
+      }
+    }
+
+    el.addEventListener('wheel', handleNativeWheel, { passive: false })
+    return () => {
+      el.removeEventListener('wheel', handleNativeWheel)
+    }
+  }, [])
+
+  const allSlots = [
+    { label: 'P1', id: 'me', name: `${playerName || t('multiplayer.host')} (${t('multiplayer.meTag')})`, exists: true },
+    ...Array.from({ length: 11 }).map((_, pIdx) => {
+      const p = players[pIdx]
+      return {
+        label: `P${pIdx + 2}`,
+        id: p ? p.id : `empty_p${pIdx + 2}`,
+        name: p ? p.name : t('multiplayer.noPlayer'),
+        exists: !!p
+      }
+    })
+  ]
+
+  return (
+    <div ref={containerRef} className="mp-assign-btn-group">
+      {/* 左侧上下翻页小三角 */}
+      <div className="mp-assign-page-nav">
+        <button
+          type="button"
+          className="mp-assign-nav-btn up"
+          onClick={(e) => { e.stopPropagation(); handlePageChange(-1); }}
+          title={t('multiplayer.prevPageHint')}
+        >
+          <ChevronUp size={10} />
+        </button>
+        <button
+          type="button"
+          className="mp-assign-nav-btn down"
+          onClick={(e) => { e.stopPropagation(); handlePageChange(1); }}
+          title={t('multiplayer.nextPageHint')}
+        >
+          <ChevronDown size={10} />
+        </button>
+      </div>
+
+      {/* 4 个玩家按钮的滑动动画视口 */}
+      <div className="mp-assign-viewport">
+        <div
+          className="mp-assign-slider"
+          style={{ transform: `translateY(-${page * 24}px)` }}
+        >
+          {[0, 1, 2].map((pageIdx) => {
+            const pageSlots = allSlots.slice(pageIdx * 4, pageIdx * 4 + 4)
+            return (
+              <div key={pageIdx} className="mp-assign-page">
+                {pageSlots.map((slot) => {
+                  const isSelected = slot.exists && currentAssign === slot.id
+                  return (
+                    <button
+                      key={slot.label}
+                      type="button"
+                      className={`mp-assign-btn ${isSelected ? 'active' : ''}`}
+                      onClick={() => slot.exists && onAssign(trackIndex, slot.id)}
+                      disabled={playbackState !== 'idle' || !slot.exists}
+                      title={slot.name}
+                    >
+                      {slot.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 最右侧固定禁用按钮 */}
+      <button
+        type="button"
+        className={`mp-assign-btn ban-btn ${currentAssign === 'none' ? 'active' : ''}`}
+        onClick={() => onAssign(trackIndex, 'none')}
+        disabled={playbackState !== 'idle'}
+        title={t('multiplayer.noAssign')}
+      >
+        <Ban size={12} />
+      </button>
+    </div>
   )
 }
 
@@ -783,7 +931,7 @@ export function MultiplayerPanel(): React.JSX.Element {
                             <span className="player-p-name">{playerName || t('multiplayer.host')} <span className="player-role-tag">({t('multiplayer.hostTag')})</span></span>
                             <span className="player-p-check ready"><Check size={14} /></span>
                           </div>
-                          {Array.from({ length: 3 }).map((_, i) => {
+                          {Array.from({ length: 11 }).map((_, i) => {
                             const pIndex = i + 2
                             const p = players[i]
                             if (p) {
@@ -1162,59 +1310,47 @@ export function MultiplayerPanel(): React.JSX.Element {
                           }
                         }
 
+                        // 计算当前轨道分配的 P 编号
+                        let assignedPLabel: string | null = null
+                        if (currentAssign === 'me') {
+                          assignedPLabel = 'P1'
+                        } else if (currentAssign && currentAssign !== 'none') {
+                          const pIdx = players.findIndex(p => p.id === currentAssign)
+                          if (pIdx !== -1) {
+                            assignedPLabel = `P${pIdx + 2}`
+                          } else if (currentAssign.startsWith('mock_')) {
+                            const num = parseInt(currentAssign.replace('mock_', ''), 10)
+                            assignedPLabel = `P${num + 1}`
+                          }
+                        }
+
                         return (
                           <div key={idx} className="mp-track-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div className="mp-track-info">
-                                <div className="mp-track-name" style={{ fontSize: 13 }} title={trackDisplay}>
-                                  {trackDisplay.length > 30 ? trackDisplay.substring(0, 30) + '...' : trackDisplay}
+                              <div className="mp-track-info" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <div className="mp-track-name" style={{ fontSize: 13 }} title={trackDisplay}>
+                                    {trackDisplay.length > 30 ? trackDisplay.substring(0, 30) + '...' : trackDisplay}
+                                  </div>
+                                  <div className="mp-track-meta">{t('multiplayer.rawNotes', { raw: noteCount, mapped: mappedTrack.length })}</div>
                                 </div>
-                                <div className="mp-track-meta">{t('multiplayer.rawNotes', { raw: noteCount, mapped: mappedTrack.length })}</div>
+                                {assignedPLabel && (
+                                  <span className="mp-track-assigned-badge">
+                                    → {assignedPLabel}
+                                  </span>
+                                )}
                               </div>
 
                               <div className="mp-track-assign" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                <div className="mp-assign-btn-group">
-                                  <button
-                                    className={`mp-assign-btn ${currentAssign === 'me' ? 'active' : ''}`}
-                                    onClick={() => handleAssign(idx, 'me')}
-                                    disabled={playbackState !== 'idle'}
-                                    title={`${playerName || t('multiplayer.host')} (${t('multiplayer.meTag')})`}
-                                  >
-                                    P1
-                                  </button>
-                                  <button
-                                    className={`mp-assign-btn ${players[0] && currentAssign === players[0].id ? 'active' : ''}`}
-                                    onClick={() => players[0] && handleAssign(idx, players[0].id)}
-                                    disabled={playbackState !== 'idle' || !players[0]}
-                                    title={players[0] ? players[0].name : t('multiplayer.noPlayer')}
-                                  >
-                                    P2
-                                  </button>
-                                  <button
-                                    className={`mp-assign-btn ${players[1] && currentAssign === players[1].id ? 'active' : ''}`}
-                                    onClick={() => players[1] && handleAssign(idx, players[1].id)}
-                                    disabled={playbackState !== 'idle' || !players[1]}
-                                    title={players[1] ? players[1].name : t('multiplayer.noPlayer')}
-                                  >
-                                    P3
-                                  </button>
-                                  <button
-                                    className={`mp-assign-btn ${players[2] && currentAssign === players[2].id ? 'active' : ''}`}
-                                    onClick={() => players[2] && handleAssign(idx, players[2].id)}
-                                    disabled={playbackState !== 'idle' || !players[2]}
-                                    title={players[2] ? players[2].name : t('multiplayer.noPlayer')}
-                                  >
-                                    P4
-                                  </button>
-                                  <button
-                                    className={`mp-assign-btn ban-btn ${currentAssign === 'none' ? 'active' : ''}`}
-                                    onClick={() => handleAssign(idx, 'none')}
-                                    disabled={playbackState !== 'idle'}
-                                    title={t('multiplayer.noAssign')}
-                                  >
-                                    <Ban size={12} />
-                                  </button>
-                                </div>
+                                <TrackAssignGroup
+                                  trackIndex={idx}
+                                  currentAssign={currentAssign}
+                                  playerName={playerName}
+                                  players={players}
+                                  playbackState={playbackState}
+                                  onAssign={handleAssign}
+                                  t={t}
+                                />
                                 <button
                                   className={`mp-btn ${previewTrackIdx === idx ? 'primary' : ''}`}
                                   style={{ padding: '6px 10px' }}

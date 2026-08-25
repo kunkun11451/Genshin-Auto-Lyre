@@ -268,7 +268,7 @@ export function SettingsPanel(): React.JSX.Element | null {
             <Settings size={18} />
             <h2>{t('settings.title')}</h2>
           </div>
-          <button className="btn-close" onClick={onClose} title="关闭">
+          <button className="btn-close" onClick={onClose} title={t('settings.close')}>
             <X size={20} />
           </button>
         </div>
@@ -279,23 +279,28 @@ export function SettingsPanel(): React.JSX.Element | null {
               <Piano size={16} color="var(--text-dim)" />
               <h3>{t('settings.basicSettings')}</h3>
             </div>
-            <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
-              <label>{t('settings.selectInstrument')}</label>
-              <select
-                value={audioPreviewInstrument}
-                onChange={(e) => onAudioPreviewInstrumentChange(e.target.value)}
-                disabled={isMultiplayerEnabled}
-                style={{ width: '120px' }}
-              >
-                <option value="Lyre">{t('instruments.Lyre')}</option>
-                <option value="Zither">{t('instruments.Zither')}</option>
-                <option value="Vintage-Lyre">{t('instruments.Vintage-Lyre')}</option>
-                <option value="Horn">{t('instruments.Horn')}</option>
-                <option value="Ukulele">{t('instruments.Ukulele')}</option>
-                <option value="LingeringEuphonia">{t('instruments.LingeringEuphonia')}</option>
-                <option value="LeapingSpiritPiano">{t('instruments.LeapingSpiritPiano')}</option>
-                <option value="HarmonicKey">{t('instruments.HarmonicKey')}</option>
-              </select>
+            <div>
+              <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none', borderBottom: 'none', paddingBottom: '4px' } : { borderBottom: 'none', paddingBottom: '4px' }}>
+                <label>{t('settings.selectInstrument')}</label>
+                <select
+                  value={audioPreviewInstrument}
+                  onChange={(e) => onAudioPreviewInstrumentChange(e.target.value)}
+                  disabled={isMultiplayerEnabled}
+                  style={{ width: '120px' }}
+                >
+                  <option value="Lyre">{t('instruments.Lyre')}</option>
+                  <option value="Zither">{t('instruments.Zither')}</option>
+                  <option value="Vintage-Lyre">{t('instruments.Vintage-Lyre')}</option>
+                  <option value="Horn">{t('instruments.Horn')}</option>
+                  <option value="Ukulele">{t('instruments.Ukulele')}</option>
+                  <option value="LingeringEuphonia">{t('instruments.LingeringEuphonia')}</option>
+                  <option value="LeapingSpiritPiano">{t('instruments.LeapingSpiritPiano')}</option>
+                  <option value="HarmonicKey">{t('instruments.HarmonicKey')}</option>
+                </select>
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-dim)', lineHeight: '1.6', whiteSpace: 'pre-line', marginTop: '2px' }}>
+                {t('settings.instrumentHint')}
+              </div>
             </div>
             <div className="setting-item" style={{ marginTop: '12px' }}>
               <label>{t('settings.theme')}</label>
@@ -394,23 +399,28 @@ export function SettingsPanel(): React.JSX.Element | null {
             </div>
           </div>
 
-          {/* 音频预览 */}
+          {/* MIDI 预览 */}
           <div className="settings-group" style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Volume2 size={16} color="var(--text-dim)" />
               <h3>{t('settings.audioPreviewTitle')}</h3>
             </div>
-            <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}>
-              <label>{t('settings.enableAudioPreview')} {isMultiplayerEnabled && `(${t('settings.multiplayerDisabled')})`}</label>
-              <label className="toggle-switch" style={isMultiplayerEnabled ? { pointerEvents: 'none' } : {}}>
-                <input
-                  type="checkbox"
-                  checked={audioPreviewEnabled}
-                  onChange={(e) => onAudioPreviewEnabledChange(e.target.checked)}
-                  disabled={isMultiplayerEnabled}
-                />
-                <span className="toggle-slider"></span>
-              </label>
+            <div>
+              <div className="setting-item" style={isMultiplayerEnabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none', borderBottom: 'none', paddingBottom: '4px' } : { borderBottom: 'none', paddingBottom: '4px' }}>
+                <label>{t('settings.enableAudioPreview')} {isMultiplayerEnabled && `(${t('settings.multiplayerDisabled')})`}</label>
+                <label className="toggle-switch" style={isMultiplayerEnabled ? { pointerEvents: 'none' } : {}}>
+                  <input
+                    type="checkbox"
+                    checked={audioPreviewEnabled}
+                    onChange={(e) => onAudioPreviewEnabledChange(e.target.checked)}
+                    disabled={isMultiplayerEnabled}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-dim)', lineHeight: '1.6', whiteSpace: 'pre-line', marginTop: '2px' }}>
+                {t('settings.audioPreviewDesc')}
+              </div>
             </div>
           </div>
 
@@ -444,7 +454,7 @@ export function SettingsPanel(): React.JSX.Element | null {
               <button
                 className={`shortcut-record-btn ${recordingType === 'playback' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('playback')}
-                title="点击后按下快捷键"
+                title={t('settings.shortcutHint')}
               >
                 {recordingType === 'playback' ? t('settings.pressAnyKey') : formatDisplayShortcut(playbackShortcut)}
               </button>
@@ -454,7 +464,7 @@ export function SettingsPanel(): React.JSX.Element | null {
               <button
                 className={`shortcut-record-btn ${recordingType === 'stop' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('stop')}
-                title="点击后按下快捷键"
+                title={t('settings.shortcutHint')}
               >
                 {recordingType === 'stop' ? t('settings.pressAnyKey') : formatDisplayShortcut(stopShortcut)}
               </button>
@@ -464,7 +474,7 @@ export function SettingsPanel(): React.JSX.Element | null {
               <button
                 className={`shortcut-record-btn ${recordingType === 'speedUp' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('speedUp')}
-                title="点击后按下快捷键"
+                title={t('settings.shortcutHint')}
               >
                 {recordingType === 'speedUp' ? t('settings.pressAnyKey') : formatDisplayShortcut(speedUpShortcut)}
               </button>
@@ -474,7 +484,7 @@ export function SettingsPanel(): React.JSX.Element | null {
               <button
                 className={`shortcut-record-btn ${recordingType === 'speedDown' ? 'recording' : ''}`}
                 onClick={() => setRecordingType('speedDown')}
-                title="点击后按下快捷键"
+                title={t('settings.shortcutHint')}
               >
                 {recordingType === 'speedDown' ? t('settings.pressAnyKey') : formatDisplayShortcut(speedDownShortcut)}
               </button>

@@ -6,6 +6,7 @@
     "title": "设置",
     "basicSettings": "基础设置",
     "selectInstrument": "选择乐器",
+    "instrumentHint": "选择乐器将改变试听音色与映射方法\n选择悠可琴、「余音」或晚风圆号\n将禁用和弦区间或缺少区间并重新映射音符\n多人演奏模式时将用一套专门的乐器选择系统，此设置将会禁用\n聚聚鼓尝试适配中...",
     "theme": "主题外观",
     "themeSystem": "跟随系统",
     "themeDark": "深色模式",
@@ -23,8 +24,9 @@
     "playbackParams": "演奏参数",
     "transpose": "整体移调 (半音)",
     "startDelay": "启动延迟 (秒)",
-    "audioPreviewTitle": "音频预览与调试",
-    "enableAudioPreview": "开启按键试听",
+    "audioPreviewTitle": "MIDI预览",
+    "enableAudioPreview": "MIDI试听",
+    "audioPreviewDesc": "开启后将在软件内播放MIDI，音色由选择的 [乐器] 决定\n关闭后开启按键模拟用于在游戏中实际演奏",
     "multiplayerDisabled": "多人演奏中已强制禁用",
     "multiplayerTitle": "多人联机合奏",
     "enableMultiplayer": "开启多人演奏模式",
@@ -49,7 +51,9 @@
     "restartNow": "立即重启更新",
     "restartLater": "稍后 (退出时更新)",
     "upToDate": "当前已是最新版本",
-    "checkFailed": "检查更新失败"
+    "checkFailed": "检查更新失败",
+    "close": "关闭",
+    "shortcutHint": "点击后按下快捷键"
   },
   "controls": {
     "stop": "停止",
@@ -82,7 +86,7 @@
   },
   "multiplayer": {
     "title": "多人联机合奏",
-    "lobbyIntro": "多人合奏模式通过P2P连接至多4名玩家进行同步演奏。使用创建房间作为主机来分配MIDI歌曲的音轨、选择乐器和同步开始信号。使用房间码作为客机加入房间并等待主机安排后开始合奏。游戏内装备乐器时选择“多人合奏”模式可以减少声音的延迟。",
+    "lobbyIntro": "多人合奏模式通过P2P连接至多12名玩家进行同步演奏。使用创建房间作为主机来分配MIDI歌曲的音轨、选择乐器和同步开始信号。使用房间码作为客机加入房间并等待主机安排后开始合奏。游戏内装备乐器时选择“多人合奏”模式可以减少声音的延迟。",
     "nickname": "玩家昵称",
     "nicknameHint": "请设置一个名字，方便小伙伴在分配音轨时找到您。",
     "nicknamePlaceholder": "输入名称",
@@ -137,6 +141,8 @@
     "midiTrackList": "MIDI 轨道分配列表",
     "assignComplete": "分配完成并等待所有玩家准备后，点击窗口底部的播放按钮可同步开始信号进行合奏",
     "loadingPreview": "正在加载合奏试听音色...",
+    "prevPageHint": "上一页 (可使用鼠标滚轮滚动)",
+    "nextPageHint": "下一页 (可使用鼠标滚轮滚动)",
     "loadingSingle": "正在加载试听音色...",
     "loadingNew": "正在加载新音色...",
     "loadFailed": "音色加载失败",

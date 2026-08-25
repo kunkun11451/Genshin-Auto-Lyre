@@ -36,7 +36,7 @@
 /* 活跃（按下）状态 */
 .piano-key--active {
   background-color: var(--key-active) !important;
-  box-shadow: 0 0 12px rgba(233, 69, 96, 0.6), inset 0 0 8px rgba(233, 69, 96, 0.3);
+  box-shadow: none;
 }
 
 /* 八度分隔线（每组 7 个键之间的视觉分界） */
@@ -54,7 +54,8 @@
 }
 
 .piano-key--active .piano-key__note {
-  color: #ffffff;
+  color: #121212;
+  font-weight: 700;
 }
 
 /* ---- 键盘按键标签 ---- */
@@ -72,6 +73,26 @@
 }
 
 .piano-key--active .piano-key__keymap {
+  color: #121212;
+  background-color: rgba(0, 0, 0, 0.12);
+  font-weight: 800;
+}
+
+html.light .piano-key {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+html.light .piano-key__keymap {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+html.light .piano-key--active .piano-key__note {
   color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.15);
+  font-weight: 700;
+}
+
+html.light .piano-key--active .piano-key__keymap {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.2);
+  font-weight: 800;
 }
