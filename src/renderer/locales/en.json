@@ -201,7 +201,7 @@
   "midiShow": {
     "searchPlaceholder": "Search MIDI by song or artist...",
     "searchBtn": "Search",
-    "loading": "Fetching search results...",
+    "loading": "Fetching results...",
     "loadingAuthor": "Fetching author profile...",
     "networkError": "Cannot get online search results, please check your network connection.",
     "authorNetworkError": "Cannot get online data, please check your network connection.",

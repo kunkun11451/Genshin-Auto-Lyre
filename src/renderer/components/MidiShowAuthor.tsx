@@ -56,17 +56,6 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
     setLoading(true)
     setError(null)
     setCurrentPage(page)
-    
-    // 如果是第一页，滚动到最顶端展示作者信息；如果是翻页，滚动到作品列表区域
-    if (page === 1) {
-      if (containerRef.current) {
-        containerRef.current.scrollTop = 0
-      }
-    } else {
-      if (worksHeaderRef.current) {
-        worksHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
-    }
 
     const baseUrl = (() => {
       const lang = i18n.language || 'zh'
@@ -91,6 +80,15 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
       
       if (parsed.currentPage) {
         setCurrentPage(parsed.currentPage)
+      }
+
+      // 数据就绪后再定位：第一页回到顶端展示作者信息；翻页直接跳到作品列表顶部
+      if (page === 1) {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = 0
+        }
+      } else if (worksHeaderRef.current) {
+        worksHeaderRef.current.scrollIntoView({ behavior: 'auto', block: 'start' })
       }
     } catch (err: any) {
       console.error('Fetch author data error:', err)
@@ -269,7 +267,13 @@ export function MidiShowAuthor({ authorName, onBack, downloadStates, onDownload 
             </div>
 
             <div className="midi-cards-container">
-              {results.map((item) => {
+              {loading && (
+                <div className="cloud-search-status-container">
+                  <img src={searchGif} className="cloud-search-loading-gif" alt="Loading..." />
+                  <div className="loading-text">{t('midiShow.loading')}</div>
+                </div>
+              )}
+              {!loading && results.map((item) => {
                 const downloadState = downloadStates[item.id] || 'idle'
                 return (
                   <div className="midi-result-card" key={item.id}>

@@ -294,12 +294,12 @@ export function MultiplayerPanel(): React.JSX.Element {
     if (role === 'none') return
 
     const doPing = () => {
-      window.electronAPI.pingGameServer().then(ping => {
+      window.electronAPI.pingGameServer().then((ping: number) => {
         setMyGamePing(ping)
         if (role === 'client') {
           networkManager.sendGamePing(ping)
         }
-      }).catch(err => {
+      }).catch((err: unknown) => {
         console.error('Ping game server failed:', err)
       })
     }

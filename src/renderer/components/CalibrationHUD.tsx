@@ -58,7 +58,7 @@ export function CalibrationHUD({ players = [], showToast, isStandalone = false }
   // 独立小窗口：监听主窗口同步过来的数据，并在挂载时主动请求一次最新数据
   useEffect(() => {
     if (!isStandalone) return
-    const unbind = window.electronAPI.onCalibrationData((data) => {
+    const unbind = window.electronAPI.onCalibrationData((data: any) => {
       if (data) setStandaloneData(data)
     })
     window.electronAPI.requestCalibrationData()
@@ -151,7 +151,7 @@ export function CalibrationHUD({ players = [], showToast, isStandalone = false }
   // 监听操作系统全局快捷键 (在游戏前台也能触发)
   useEffect(() => {
     if (isStandalone) return
-    const unbind = window.electronAPI.onCalibrationShortcut((key) => {
+    const unbind = window.electronAPI.onCalibrationShortcut((key: string) => {
       if (isCalibrating) {
         handleAction(key)
       }

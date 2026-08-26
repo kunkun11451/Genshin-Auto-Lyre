@@ -14,6 +14,12 @@ import type { MappedNote } from './note-mapper'
 /** 播放状态 */
 export type PlaybackState = 'idle' | 'playing' | 'paused'
 
+/** 调度心跳周期（毫秒）：决定 noteOn/noteOff 的触发精度 */
+const HEARTBEAT_INTERVAL_MS = 8
+
+/** UI 通知最小间隔（毫秒）：onTick 节流至约 30fps，演奏事件不受影响 */
+const UI_NOTIFY_INTERVAL_MS = 32
+
 /** 播放引擎回调接口 */
 export interface PlaybackCallbacks {
   /** 每帧回调，驱动 UI 更新 */
@@ -45,8 +51,10 @@ export class PlaybackEngine {
   private startTimestamp: number = 0
   /** 暂停时已播放的偏移量 */
   private pauseOffset: number = 0
-  /** requestAnimationFrame ID */
-  private rafId: number = 0
+  /** 心跳 Worker：独立线程驱动调度，不受 GPU 饥饿与页面节流影响 */
+  private heartbeatWorker: Worker | null = null
+  /** 上次 UI 通知的时间戳（用于 onTick 节流） */
+  private lastUiNotifyMs: number = -1000
   /** 当前已触发到的音符索引 */
   private noteIndex: number = 0
   /** 当前正在演奏的活跃音符（key → MappedNote） */
@@ -112,8 +120,9 @@ export class PlaybackEngine {
       this.activeNotes.clear()
     }
 
-    // 启动渲染循环
-    this.rafId = requestAnimationFrame(() => this.tick())
+    // 启动调度心跳（独立线程，游戏抢占 GPU 时依然准时）
+    this.lastUiNotifyMs = -1000
+    this.startHeartbeat()
   }
 
   /**
@@ -122,7 +131,7 @@ export class PlaybackEngine {
   pause(): void {
     if (this.state !== 'playing') return
 
-    cancelAnimationFrame(this.rafId)
+    this.stopHeartbeat()
     this.state = 'paused'
     this.callbacks.onStateChange('paused')
 
@@ -134,7 +143,7 @@ export class PlaybackEngine {
    * 停止播放，回到开头
    */
   stop(): void {
-    cancelAnimationFrame(this.rafId)
+    this.stopHeartbeat()
     this.releaseAllActiveNotes()
 
     this.state = 'idle'
@@ -151,7 +160,7 @@ export class PlaybackEngine {
   seek(timeMs: number): void {
     const wasPlaying = this.state === 'playing'
     if (wasPlaying) {
-      cancelAnimationFrame(this.rafId)
+      this.stopHeartbeat()
     }
 
     // 释放当前活跃音符
@@ -169,7 +178,8 @@ export class PlaybackEngine {
     // 如果之前在播放，继续播放
     if (wasPlaying) {
       this.startTimestamp = performance.now()
-      this.rafId = requestAnimationFrame(() => this.tick())
+      this.lastUiNotifyMs = -1000
+      this.startHeartbeat()
     }
   }
 
@@ -219,12 +229,40 @@ export class PlaybackEngine {
    */
   dispose(): void {
     this.stop()
+    this.heartbeatWorker?.terminate()
+    this.heartbeatWorker = null
     this.notes = []
   }
 
   // ============================================================
   // 内部方法
   // ============================================================
+
+  /**
+   * 启动心跳 Worker（复用实例，仅切换启停）
+   */
+  private startHeartbeat(): void {
+    if (this.heartbeatWorker) {
+      this.heartbeatWorker.postMessage('start')
+      return
+    }
+
+    const code =
+      'onmessage=e=>{if(e.data==="start"){if(!t)t=setInterval(()=>postMessage(0),' +
+      HEARTBEAT_INTERVAL_MS +
+      ')}else if(t){clearInterval(t);t=null}};let t=null'
+    const blob = new Blob([code], { type: 'text/javascript' })
+    this.heartbeatWorker = new Worker(URL.createObjectURL(blob))
+    this.heartbeatWorker.onmessage = () => this.tick()
+    this.heartbeatWorker.postMessage('start')
+  }
+
+  /**
+   * 停止心跳（保留 Worker 实例供下次播放复用）
+   */
+  private stopHeartbeat(): void {
+    this.heartbeatWorker?.postMessage('stop')
+  }
 
   /**
    * 主循环 tick（每帧调用）
@@ -284,11 +322,12 @@ export class PlaybackEngine {
       }
     }
 
-    // 通知 UI 更新
-    this.callbacks.onTick(this.currentTimeMs)
-
-    // 继续下一帧
-    this.rafId = requestAnimationFrame(() => this.tick())
+    // 通知 UI 更新（节流至 ~30fps；noteOn/noteOff 演奏事件不受此影响）
+    const nowMs = performance.now()
+    if (nowMs - this.lastUiNotifyMs >= UI_NOTIFY_INTERVAL_MS) {
+      this.lastUiNotifyMs = nowMs
+      this.callbacks.onTick(this.currentTimeMs)
+    }
   }
 
   /**

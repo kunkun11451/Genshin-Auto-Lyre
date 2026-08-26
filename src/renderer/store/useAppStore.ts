@@ -97,6 +97,7 @@ interface AppState {
   multiplayerRole: 'none' | 'host' | 'client'
   setMultiplayerRole: (role: 'none' | 'host' | 'client') => void
   multiplayerHostName: string
+  setMultiplayerHostName: (name: string) => void
   optimizeGameDelay: boolean
   setOptimizeGameDelay: (enabled: boolean) => void
   delaySyncMode: 'off' | 'auto' | 'manual'
@@ -220,6 +221,7 @@ export const useAppStore = create<AppState>()(
       multiplayerCombinedTracks: {},
       multiplayerRole: 'none',
       multiplayerHostName: '',
+      setMultiplayerHostName: (name) => set({ multiplayerHostName: name }),
       optimizeGameDelay: false,
       delaySyncMode: 'off',
       manualPlayerDelays: {},

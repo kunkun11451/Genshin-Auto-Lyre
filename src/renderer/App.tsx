@@ -183,7 +183,7 @@ function App(): React.JSX.Element {
     }
     mediaQuery.addEventListener('change', listener)
     
-    const cleanupMaximized = window.electronAPI.onMaximizedStateChanged((maximized) => {
+    const cleanupMaximized = window.electronAPI.onMaximizedStateChanged((maximized: boolean) => {
       useAppStore.getState().setIsMaximized(maximized)
     })
     
@@ -198,37 +198,49 @@ function App(): React.JSX.Element {
   const engineRef = useRef<PlaybackEngine | null>(null)
   const batchedDownsRef = useRef<string[]>([])
   const batchedUpsRef = useRef<string[]>([])
+  const keyFlushScheduledRef = useRef(false)
+
+  // 同一轮调度内的按键事件合并为一次 IPC，在微任务中冲刷，
+  // 不依赖 UI 帧率——游戏抢占 GPU 导致掉帧时依然准时发键
+  const flushKeyBatch = () => {
+    keyFlushScheduledRef.current = false
+    const downs = batchedDownsRef.current
+    const ups = batchedUpsRef.current
+    if (downs.length > 0 || ups.length > 0) {
+      if (!useAppStore.getState().audioPreviewEnabled) {
+        window.electronAPI.keyBatch(downs, ups)
+      }
+      batchedDownsRef.current = []
+      batchedUpsRef.current = []
+    }
+  }
+  const scheduleKeyFlush = () => {
+    if (keyFlushScheduledRef.current) return
+    keyFlushScheduledRef.current = true
+    queueMicrotask(flushKeyBatch)
+  }
 
   useEffect(() => {
     // 初始化播放引擎
     engineRef.current = new PlaybackEngine({
       onTick: (timeMs) => {
         setCurrentTime(timeMs)
-        
-        // 批量发送当前帧的所有按键事件给主进程，避免高频 IPC 通信阻塞渲染进程导致卡顿
-        const downs = batchedDownsRef.current
-        const ups = batchedUpsRef.current
-        if (downs.length > 0 || ups.length > 0) {
-          if (!useAppStore.getState().audioPreviewEnabled) {
-            window.electronAPI.keyBatch(downs, ups)
-          }
-          batchedDownsRef.current = []
-          batchedUpsRef.current = []
-        }
       },
       onNoteOn: (note) => {
         addActiveKey(note.key)
         audioPreview.noteOn(note.midiNote, note.velocity)
-        
+
         // 收集按下按键
         batchedDownsRef.current.push(note.key)
+        scheduleKeyFlush()
       },
       onNoteOff: (note) => {
         removeActiveKey(note.key)
         audioPreview.noteOff(note.midiNote)
-        
+
         // 收集释放按键
         batchedUpsRef.current.push(note.key)
+        scheduleKeyFlush()
       },
       onStateChange: (state) => {
         setPlaybackState(state)
@@ -328,11 +340,11 @@ function App(): React.JSX.Element {
 
   // === 监听在线下载 ===
   useEffect(() => {
-    const unsubscribe = window.electronAPI.onMidiDownloaded(async (path) => {
+    const unsubscribe = window.electronAPI.onMidiDownloaded(async (path: string) => {
       // 强制刷新文件列表
       const files = await window.electronAPI.listMidiFiles()
       setMidiFiles(
-        files.map(f => ({ path: f, name: f.split('\\').pop() || f }))
+        files.map((f: string) => ({ path: f, name: f.split('\\').pop() || f }))
       )
       
       setLatestDownloadedMidi(path)
@@ -423,9 +435,9 @@ function App(): React.JSX.Element {
 
   // === 自动更新事件监听与版本获取 ===
   useEffect(() => {
-    window.electronAPI.getAppVersion().then(v => setAppVersion(v))
+    window.electronAPI.getAppVersion().then((v: string) => setAppVersion(v))
 
-    const unsubProgress = window.electronAPI.onUpdateProgress((percent) => {
+    const unsubProgress = window.electronAPI.onUpdateProgress((percent: number) => {
       setUpdateProgress(percent)
     })
 
@@ -433,7 +445,7 @@ function App(): React.JSX.Element {
       setUpdateStatus('ready')
     })
 
-    const unsubError = window.electronAPI.onUpdateError((err) => {
+    const unsubError = window.electronAPI.onUpdateError((err: string) => {
       setUpdateStatus('error')
       setUpdateErrorMsg(err)
     })
@@ -454,7 +466,7 @@ function App(): React.JSX.Element {
   const fetchMidiFiles = async () => {
     try {
       const files = await window.electronAPI.listMidiFiles()
-      const newMidiFiles = files.map(p => ({
+      const newMidiFiles = files.map((p: string) => ({
         path: p,
         name: p.split(/[/\\]/).pop() || '未命名'
       }))

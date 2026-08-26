@@ -173,7 +173,8 @@ function createWindow(): BrowserWindow {
       nodeIntegration: false,
       sandbox: false,
       webviewTag: true,
-      devTools: isDev
+      devTools: isDev,
+      backgroundThrottling: false
     }
   })
 
@@ -688,9 +689,28 @@ function createWindow(): BrowserWindow {
       // 后台浏览器始终保持静音，防止试听网页播放出声音打扰用户
       downloadWin.webContents.audioMuted = true
 
+      // 结果判定：以下方注入脚本成功触发下载为准；
+      // 不能用 await loadURL() 判定成败——窗口被销毁定时器关闭时，
+      // 挂起的 loadURL 会以 ERR_FAILED(-2) reject，导致“文件已保存却报下载失败”
+      let finished = false
+      let settle!: (r: { success: boolean; error?: string }) => void
+      const result = new Promise<{ success: boolean; error?: string }>((resolve) => {
+        settle = resolve
+      })
+      const finish = (r: { success: boolean; error?: string }) => {
+        if (finished) return
+        finished = true
+        settle(r)
+      }
+      downloadWin.once('closed', () => {
+        finish({ success: false, error: 'Download window closed before finishing' })
+      })
+
       // 使用 dom-ready 提前注入，不需要等待 did-finish-load (图片等资源加载完毕)
       downloadWin.webContents.on('dom-ready', () => {
         let retries = 0
+        let lastStatus = 'not started'
+        let triggered = false // loadUrl 已触发；进入 MIDI 数据拉取阶段后需放宽超时
         const interval = setInterval(() => {
           if (downloadWin.isDestroyed()) {
             clearInterval(interval)
@@ -708,10 +728,9 @@ function createWindow(): BrowserWindow {
                 var Original_JZZ_MIDI_SMF = JZZ.MIDI.SMF;
                 JZZ.MIDI.SMF = function(Midi_File){
                   var e = $('.ms-player-container');
-                  var id = e.data('id') || 'unknown';
                   var titleElem = e.find('h1.pl-md-player');
                   var title = titleElem.length ? titleElem.text().trim() : document.title.replace(" MIDI 音乐下载试听 :: MidiShow","");
-                  var Midi_File_Name = id + " - " + title + ".mid";
+                  var Midi_File_Name = title + ".mid";
                   
                   var Midi_File_Binary_Array = new Uint8Array(Midi_File.length);
                   for (var Binary_Pointer = 0; Binary_Pointer < Midi_File.length ; Binary_Pointer++) { 
@@ -742,15 +761,28 @@ function createWindow(): BrowserWindow {
               
               if (!window._download_triggered) {
                 window._download_triggered = true;
-                // 直接调用 loadUrl 而不是等待和点击播放按钮
-                await player.loadUrl();
-                return { success: true, msg: 'Triggered loadUrl' };
+                // 直接调用 loadUrl 而不是等待和点击播放按钮；失败时复位标记以便下一轮重试
+                try {
+                  await player.loadUrl();
+                  return { success: true, msg: 'Triggered loadUrl' };
+                } catch (e) {
+                  window._download_triggered = false;
+                  return { success: false, msg: 'loadUrl failed: ' + e };
+                }
               }
               return { success: false, msg: 'Already triggered' };
             })()
           `).then((res) => {
+            if (res && res.msg) {
+              lastStatus = res.msg
+              if (res.msg === 'Already triggered') {
+                triggered = true
+              }
+            }
             if (res && res.success) {
               clearInterval(interval)
+              // 下载流程已成功触发，立即返回成功；文件落盘由 will-download 单独通知
+              finish({ success: true })
               // 给 5 秒缓冲时间，供 will-download 拦截并静默下载文件，然后销毁窗口
               setTimeout(() => {
                 if (!downloadWin.isDestroyed()) {
@@ -760,10 +792,13 @@ function createWindow(): BrowserWindow {
             }
           }).catch((err) => {
             console.error('Execute inject script error:', err)
+            lastStatus = 'inject error: ' + (err?.message ?? String(err))
           })
 
-          if (retries++ > 1000) { // 20秒超时自毁 (20ms * 1000)
+          // 触发前：20 秒内须完成劫持并触发下载；触发后：数据拉取放宽到 60 秒
+          if (retries++ > (triggered ? 3000 : 1000)) {
             clearInterval(interval)
+            finish({ success: false, error: `Timed out waiting for the page player (${lastStatus})` })
             if (!downloadWin.isDestroyed()) {
               downloadWin.destroy()
             }
@@ -771,9 +806,18 @@ function createWindow(): BrowserWindow {
         }, 20)
       })
 
-      // 加载页面
-      await downloadWin.loadURL(url)
-      return { success: true }
+      // 加载页面。此处刻意不 await：页面子资源全部加载完（did-finish-load）可能晚于
+      // 上方 5 秒销毁倒计时，窗口销毁会让挂起的 loadURL 以 ERR_FAILED(-2) reject，
+      // 与下载成败无关；只有它在本流程结束前自行失败（真·导航错误）才上报
+      downloadWin.loadURL(url).catch((loadErr: any) => {
+        console.warn('loadURL rejected:', loadErr?.message ?? loadErr)
+        if (!finished && !downloadWin.isDestroyed()) {
+          finish({ success: false, error: String(loadErr?.message ?? loadErr) })
+          downloadWin.destroy()
+        }
+      })
+
+      return await result
     } catch (err: any) {
       console.error('Download cloud midi error:', err)
       return { success: false, error: err.message }

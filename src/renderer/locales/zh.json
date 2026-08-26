@@ -201,7 +201,7 @@
   "midiShow": {
     "searchPlaceholder": "输入歌曲名或歌手搜索 MIDI...",
     "searchBtn": "搜 索",
-    "loading": "正在调取搜索结果...",
+    "loading": "正在调取结果...",
     "loadingAuthor": "正在调取作者主页...",
     "networkError": "无法获取在线搜索结果，请检查网络连接。",
     "authorNetworkError": "无法获取在线数据，请检查网络连接。",
