@@ -5,6 +5,7 @@
   "settings": {
     "title": "Settings",
     "basicSettings": "Basic Settings",
+    "playbackSettings": "Playback Settings",
     "selectInstrument": "Select Instrument",
     "instrumentHint": "Selecting an instrument will change both the audition sound and note mapping method.\nSelecting Ukulele, \"Lingering Euphonia\", or Nightwind Horn\nwill disable chords or missing octaves and remap notes.\nIn multiplayer mode, a dedicated instrument selection system is used and this setting will be disabled.\nDjem Djem Drum support in progress...",
     "theme": "Theme Appearance",
@@ -142,8 +143,8 @@
     "midiTrackList": "MIDI Track Assignment List",
     "assignComplete": "After assignment and all players are ready, click play at the bottom to sync start signal",
     "loadingPreview": "Loading ensemble preview audio...",
-    "prevPageHint": "Previous Page (Scroll with mouse wheel)",
-    "nextPageHint": "Next Page (Scroll with mouse wheel)",
+    "prevPageHint": "Previous Page",
+    "nextPageHint": "Next Page",
     "loadingSingle": "Loading preview audio...",
     "loadingNew": "Loading new audio...",
     "loadFailed": "Failed to load audio",

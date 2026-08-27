@@ -126,8 +126,6 @@ function TrackAssignGroup({
   }
 
   const [page, setPage] = useState<number>(getInitialPage)
-  const lastWheelTimeRef = useRef<number>(0)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   const handlePageChange = (delta: number) => {
     setPage(prev => {
@@ -137,33 +135,6 @@ function TrackAssignGroup({
       return next
     })
   }
-
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-
-    const handleNativeWheel = (e: WheelEvent) => {
-      // 阻止外层轨道列表容器和页面滚动
-      e.preventDefault()
-      e.stopPropagation()
-
-      const now = performance.now()
-      if (now - lastWheelTimeRef.current < 160) return
-      if (Math.abs(e.deltaY) < 6) return
-
-      lastWheelTimeRef.current = now
-      if (e.deltaY > 0) {
-        handlePageChange(1)
-      } else {
-        handlePageChange(-1)
-      }
-    }
-
-    el.addEventListener('wheel', handleNativeWheel, { passive: false })
-    return () => {
-      el.removeEventListener('wheel', handleNativeWheel)
-    }
-  }, [])
 
   const allSlots = [
     { label: 'P1', id: 'me', name: `${playerName || t('multiplayer.host')} (${t('multiplayer.meTag')})`, exists: true },
@@ -179,7 +150,7 @@ function TrackAssignGroup({
   ]
 
   return (
-    <div ref={containerRef} className="mp-assign-btn-group">
+    <div className="mp-assign-btn-group">
       {/* 左侧上下翻页小三角 */}
       <div className="mp-assign-page-nav">
         <button

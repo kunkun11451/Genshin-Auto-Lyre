@@ -5,6 +5,7 @@
   "settings": {
     "title": "設定",
     "basicSettings": "基礎設定",
+    "playbackSettings": "演奏設定",
     "selectInstrument": "選擇樂器",
     "instrumentHint": "選擇樂器將改變試聽音色與映射方法\n選擇悠可琴、「餘音」或晚風圓號\n將禁用和弦區間或缺少區間並重新映射音符\n多人演奏模式時將用一套專門的樂器選擇系統，此設定將會禁用\n聚聚鼓嘗試適配中...",
     "theme": "主題外觀",
@@ -142,8 +143,8 @@
     "midiTrackList": "MIDI 軌道分配列表",
     "assignComplete": "分配完成並等待所有玩家準備後，點擊視窗底部的播放按鈕可同步開始信號進行合奏",
     "loadingPreview": "正在加載合奏試聽音色...",
-    "prevPageHint": "上一頁 (可使用滑鼠滾輪滾動)",
-    "nextPageHint": "下一頁 (可使用滑鼠滾輪滾動)",
+    "prevPageHint": "上一頁",
+    "nextPageHint": "下一頁",
     "loadingSingle": "正在載入試聽音色...",
     "loadingNew": "正在載入新音色...",
     "loadFailed": "音色載入失敗",
